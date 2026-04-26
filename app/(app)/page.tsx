@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
 import { getFocusZones } from "@/lib/queries/focus-zones";
+import { searchTiles, type TileSearchResult } from "@/lib/queries/tiles";
 import { DashboardTopBar } from "@/components/dashboard-top-bar";
 import { TileGrid } from "@/components/tile-grid";
 import { EmptyState } from "@/components/empty-state";
@@ -15,7 +16,63 @@ export default async function DashboardPage({ searchParams }: Props) {
   const user = await requireUser();
   const supabase = await createClient();
   const zones = await getFocusZones();
+  const isSearching = !!params.q?.trim();
 
+  // Search mode
+  if (isSearching) {
+    const results = await searchTiles(params.q!);
+
+    // Build search previews from match data
+    const previews: Record<
+      string,
+      | { type: "checklist"; remaining: number; total: number }
+      | { type: "sections"; text: string }
+    > = {};
+
+    for (const r of results) {
+      if (r.match?.snippet) {
+        const prefix = r.match.sectionTitle
+          ? `I '${r.match.sectionTitle}': `
+          : "";
+        previews[r.id] = { type: "sections", text: prefix + r.match.snippet };
+      }
+    }
+
+    return (
+      <div className="flex flex-col h-full">
+        <DashboardTopBar activeZoneId={params.zone} />
+        <div className="flex-1 overflow-auto p-6">
+          {results.length > 0 ? (
+            <>
+              <p className="text-xs text-muted-foreground mb-4">
+                {results.length} resultat{results.length !== 1 ? "er" : ""} for &lsquo;{params.q}&rsquo;
+              </p>
+              <TileGrid
+                tiles={results}
+                zones={zones}
+                previews={previews}
+                groupByZone={false}
+              />
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <p className="text-muted-foreground">
+                Ingen tiles matcher &lsquo;{params.q}&rsquo;
+              </p>
+              <a
+                href="/"
+                className="text-sm text-primary underline underline-offset-4 hover:text-primary/80"
+              >
+                Tøm søk
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Normal mode
   let query = supabase
     .from("tiles")
     .select("*")
@@ -28,14 +85,11 @@ export default async function DashboardPage({ searchParams }: Props) {
   if (params.zone) {
     query = query.eq("zone_id", params.zone);
   }
-  if (params.q) {
-    query = query.ilike("title", `%${params.q}%`);
-  }
 
   const { data: tiles } = await query;
   const typedTiles = (tiles ?? []) as Tile[];
 
-  if (typedTiles.length === 0 && !params.q) {
+  if (typedTiles.length === 0) {
     return (
       <div className="flex flex-col h-full">
         <DashboardTopBar activeZoneId={params.zone} />
@@ -51,14 +105,9 @@ export default async function DashboardPage({ searchParams }: Props) {
     | { type: "sections"; text: string }
   > = {};
 
-  const checklistTileIds = typedTiles
-    .filter((t) => t.type === "checklist")
-    .map((t) => t.id);
-  const sectionsTileIds = typedTiles
-    .filter((t) => t.type === "sections")
-    .map((t) => t.id);
+  const checklistTileIds = typedTiles.filter((t) => t.type === "checklist").map((t) => t.id);
+  const sectionsTileIds = typedTiles.filter((t) => t.type === "sections").map((t) => t.id);
 
-  // Fetch all previews in parallel
   const [checklistResult, sessionsResult, sectionsResult] = await Promise.all([
     checklistTileIds.length > 0
       ? supabase.from("checklist_items").select("tile_id, is_completed").in("tile_id", checklistTileIds)
@@ -71,7 +120,6 @@ export default async function DashboardPage({ searchParams }: Props) {
       : null,
   ]);
 
-  // Process checklist previews
   if (checklistResult?.data) {
     const counts: Record<string, { remaining: number; total: number }> = {};
     for (const item of checklistResult.data) {
@@ -80,36 +128,24 @@ export default async function DashboardPage({ searchParams }: Props) {
       if (!item.is_completed) counts[item.tile_id].remaining++;
     }
     for (const id of checklistTileIds) {
-      previews[id] = {
-        type: "checklist",
-        ...(counts[id] ?? { remaining: 0, total: 0 }),
-      };
+      previews[id] = { type: "checklist", ...(counts[id] ?? { remaining: 0, total: 0 }) };
     }
   }
 
-  // Process sections previews
   if (sectionsTileIds.length > 0) {
     const latestSession: Record<string, string> = {};
     for (const s of sessionsResult?.data ?? []) {
-      if (!latestSession[s.tile_id] && s.note) {
-        latestSession[s.tile_id] = s.note;
-      }
+      if (!latestSession[s.tile_id] && s.note) latestSession[s.tile_id] = s.note;
     }
-
     const sectionTexts: Record<string, string> = {};
     for (const s of sectionsResult?.data ?? []) {
-      if (!sectionTexts[s.tile_id] && s.plain_text) {
-        sectionTexts[s.tile_id] = s.plain_text;
-      }
+      if (!sectionTexts[s.tile_id] && s.plain_text) sectionTexts[s.tile_id] = s.plain_text;
     }
-
     for (const id of sectionsTileIds) {
-      const sessionNote = latestSession[id];
-      const sectionText = sectionTexts[id];
-      const text = sessionNote
-        ? `Next: ${sessionNote.slice(0, 120)}`
-        : sectionText
-          ? sectionText.slice(0, 120)
+      const text = latestSession[id]
+        ? `Next: ${latestSession[id].slice(0, 120)}`
+        : sectionTexts[id]
+          ? sectionTexts[id].slice(0, 120)
           : "";
       previews[id] = { type: "sections", text };
     }

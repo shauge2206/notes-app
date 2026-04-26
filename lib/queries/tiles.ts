@@ -2,6 +2,16 @@ import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
 import type { Tile, TileWithChildren, Section, ChecklistItem, WorkSession } from "@/lib/types";
 
+export interface SearchMatch {
+  sectionTitle?: string;
+  snippet?: string;
+}
+
+export interface TileSearchResult extends Tile {
+  match?: SearchMatch;
+  rank?: number;
+}
+
 export async function getTiles(opts?: {
   zoneId?: string;
   pinnedOnly?: boolean;
@@ -82,45 +92,100 @@ export async function getTileById(id: string): Promise<TileWithChildren> {
   };
 }
 
-export async function searchTiles(query: string): Promise<Tile[]> {
+export async function searchTiles(query: string): Promise<TileSearchResult[]> {
   const user = await requireUser();
   const supabase = await createClient();
+  const q = query.trim();
 
-  // Search tile titles
-  const { data: titleMatches, error: titleErr } = await supabase
+  // Always search tile titles
+  const { data: titleMatches } = await supabase
     .from("tiles")
     .select("*")
     .eq("user_id", user.id)
     .eq("is_archived", false)
-    .ilike("title", `%${query}%`);
+    .ilike("title", `%${q}%`);
 
-  if (titleErr) throw new Error(titleErr.message);
+  const results = new Map<string, TileSearchResult>();
+  for (const t of titleMatches ?? []) {
+    results.set(t.id, { ...(t as Tile), rank: 1 });
+  }
 
-  // Search section plain_text
-  const { data: sectionMatches } = await supabase
-    .from("sections")
-    .select("tile_id")
-    .ilike("plain_text", `%${query}%`);
+  // Full-text search on sections for queries >= 3 chars
+  if (q.length >= 3) {
+    // Use plainto_tsquery for safe input handling
+    const { data: sectionMatches } = await supabase
+      .from("sections")
+      .select("tile_id, title, plain_text")
+      .textSearch("search_vector", q, { type: "plain", config: "norwegian" });
 
-  const sectionTileIds = (sectionMatches ?? []).map((s) => s.tile_id);
+    for (const s of sectionMatches ?? []) {
+      // Extract snippet around match
+      const lowerText = (s.plain_text ?? "").toLowerCase();
+      const lowerQ = q.toLowerCase();
+      const idx = lowerText.indexOf(lowerQ);
+      let snippet = "";
+      if (idx !== -1) {
+        const start = Math.max(0, idx - 40);
+        const end = Math.min(lowerText.length, idx + q.length + 80);
+        snippet = (start > 0 ? "…" : "") + (s.plain_text ?? "").slice(start, end) + (end < lowerText.length ? "…" : "");
+      } else {
+        snippet = (s.plain_text ?? "").slice(0, 120);
+      }
 
-  if (sectionTileIds.length === 0) return (titleMatches ?? []) as Tile[];
+      const existing = results.get(s.tile_id);
+      const match: SearchMatch = {
+        sectionTitle: s.title,
+        snippet,
+      };
 
-  const { data: sectionTiles } = await supabase
-    .from("tiles")
-    .select("*")
-    .eq("user_id", user.id)
-    .eq("is_archived", false)
-    .in("id", sectionTileIds);
+      if (existing) {
+        // Keep the better match
+        if (!existing.match) {
+          existing.match = match;
+          existing.rank = 2;
+        }
+      } else {
+        // Need to fetch the tile
+        const { data: tile } = await supabase
+          .from("tiles")
+          .select("*")
+          .eq("id", s.tile_id)
+          .eq("user_id", user.id)
+          .eq("is_archived", false)
+          .single();
 
-  // Merge and deduplicate
-  const seen = new Set<string>();
-  const result: Tile[] = [];
-  for (const t of [...(titleMatches ?? []), ...(sectionTiles ?? [])]) {
-    if (!seen.has(t.id)) {
-      seen.add(t.id);
-      result.push(t as Tile);
+        if (tile) {
+          results.set(s.tile_id, { ...(tile as Tile), match, rank: 2 });
+        }
+      }
+    }
+
+    // Also search section titles via ILIKE
+    const { data: sectionTitleMatches } = await supabase
+      .from("sections")
+      .select("tile_id, title, plain_text")
+      .ilike("title", `%${q}%`);
+
+    for (const s of sectionTitleMatches ?? []) {
+      if (results.has(s.tile_id)) continue;
+      const { data: tile } = await supabase
+        .from("tiles")
+        .select("*")
+        .eq("id", s.tile_id)
+        .eq("user_id", user.id)
+        .eq("is_archived", false)
+        .single();
+
+      if (tile) {
+        results.set(s.tile_id, {
+          ...(tile as Tile),
+          match: { sectionTitle: s.title, snippet: (s.plain_text ?? "").slice(0, 120) },
+          rank: 1.5,
+        });
+      }
     }
   }
-  return result;
+
+  // Sort by rank desc
+  return Array.from(results.values()).sort((a, b) => (b.rank ?? 0) - (a.rank ?? 0));
 }
