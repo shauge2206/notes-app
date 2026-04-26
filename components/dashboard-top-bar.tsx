@@ -4,15 +4,12 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { NewTileDialog } from "@/components/new-tile-dialog";
-import type { FocusZone } from "@/lib/types";
 
 interface Props {
-  zones: FocusZone[];
   activeZoneId?: string;
 }
 
-export function DashboardTopBar({ zones, activeZoneId }: Props) {
+export function DashboardTopBar({ activeZoneId }: Props) {
   const [query, setQuery] = useState("");
   const [, startTransition] = useTransition();
   const router = useRouter();
@@ -38,7 +35,6 @@ export function DashboardTopBar({ zones, activeZoneId }: Props) {
           className="pl-8 h-9"
         />
       </div>
-      <NewTileDialog zones={zones} defaultZoneId={activeZoneId} />
     </div>
   );
 }

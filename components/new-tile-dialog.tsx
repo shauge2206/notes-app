@@ -25,9 +25,10 @@ const SIZE_LABELS: Record<string, string> = { sm: "S", md: "M", lg: "L" };
 interface Props {
   zones: FocusZone[];
   defaultZoneId?: string;
+  trigger?: React.ReactNode;
 }
 
-export function NewTileDialog({ zones, defaultZoneId }: Props) {
+export function NewTileDialog({ zones, defaultZoneId, trigger }: Props) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [type, setType] = useState<TileType | null>(null);
@@ -84,9 +85,13 @@ export function NewTileDialog({ zones, defaultZoneId }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90 transition-colors">
-        <Plus className="w-4 h-4" />
-        Ny tile
+      <DialogTrigger className={trigger ? "w-full h-full block appearance-none bg-transparent border-none p-0 m-0" : "inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90 transition-colors"}>
+        {trigger ?? (
+          <>
+            <Plus className="w-4 h-4" />
+            Ny tile
+          </>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>

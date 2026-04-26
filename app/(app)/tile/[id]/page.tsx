@@ -1,3 +1,7 @@
+import { notFound } from "next/navigation";
+import { getTileById } from "@/lib/queries/tiles";
+import { ChecklistTilePage } from "@/components/tile/checklist-tile-page";
+
 export default async function TilePage({
   params,
 }: {
@@ -5,10 +9,22 @@ export default async function TilePage({
 }) {
   const { id } = await params;
 
+  let tile;
+  try {
+    tile = await getTileById(id);
+  } catch {
+    notFound();
+  }
+
+  if (tile.type === "checklist") {
+    return <ChecklistTilePage tile={tile} />;
+  }
+
+  // Phase 7: sections tile
   return (
     <div className="flex flex-1 items-center justify-center">
       <p className="text-muted-foreground">
-        Tile {id} — Phase 6/7 will build this view
+        Sections tile — coming in Phase 7
       </p>
     </div>
   );

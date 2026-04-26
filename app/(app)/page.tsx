@@ -38,7 +38,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   if (typedTiles.length === 0 && !params.q) {
     return (
       <div className="flex flex-col h-full">
-        <DashboardTopBar zones={zones} activeZoneId={params.zone} />
+        <DashboardTopBar activeZoneId={params.zone} />
         <EmptyState zones={zones} activeZoneId={params.zone} />
       </div>
     );
@@ -58,14 +58,23 @@ export default async function DashboardPage({ searchParams }: Props) {
     .filter((t) => t.type === "sections")
     .map((t) => t.id);
 
-  if (checklistTileIds.length > 0) {
-    const { data: items } = await supabase
-      .from("checklist_items")
-      .select("tile_id, is_completed")
-      .in("tile_id", checklistTileIds);
+  // Fetch all previews in parallel
+  const [checklistResult, sessionsResult, sectionsResult] = await Promise.all([
+    checklistTileIds.length > 0
+      ? supabase.from("checklist_items").select("tile_id, is_completed").in("tile_id", checklistTileIds)
+      : null,
+    sectionsTileIds.length > 0
+      ? supabase.from("work_sessions").select("tile_id, note").in("tile_id", sectionsTileIds).order("created_at", { ascending: false })
+      : null,
+    sectionsTileIds.length > 0
+      ? supabase.from("sections").select("tile_id, plain_text").in("tile_id", sectionsTileIds).order("position", { ascending: true })
+      : null,
+  ]);
 
+  // Process checklist previews
+  if (checklistResult?.data) {
     const counts: Record<string, { remaining: number; total: number }> = {};
-    for (const item of items ?? []) {
+    for (const item of checklistResult.data) {
       if (!counts[item.tile_id]) counts[item.tile_id] = { remaining: 0, total: 0 };
       counts[item.tile_id].total++;
       if (!item.is_completed) counts[item.tile_id].remaining++;
@@ -78,33 +87,19 @@ export default async function DashboardPage({ searchParams }: Props) {
     }
   }
 
+  // Process sections previews
   if (sectionsTileIds.length > 0) {
-    const { data: sessions } = await supabase
-      .from("work_sessions")
-      .select("tile_id, note")
-      .in("tile_id", sectionsTileIds)
-      .order("created_at", { ascending: false });
-
     const latestSession: Record<string, string> = {};
-    for (const s of sessions ?? []) {
+    for (const s of sessionsResult?.data ?? []) {
       if (!latestSession[s.tile_id] && s.note) {
         latestSession[s.tile_id] = s.note;
       }
     }
 
-    const needSection = sectionsTileIds.filter((id) => !latestSession[id]);
     const sectionTexts: Record<string, string> = {};
-    if (needSection.length > 0) {
-      const { data: sections } = await supabase
-        .from("sections")
-        .select("tile_id, plain_text")
-        .in("tile_id", needSection)
-        .order("position", { ascending: true });
-
-      for (const s of sections ?? []) {
-        if (!sectionTexts[s.tile_id] && s.plain_text) {
-          sectionTexts[s.tile_id] = s.plain_text;
-        }
+    for (const s of sectionsResult?.data ?? []) {
+      if (!sectionTexts[s.tile_id] && s.plain_text) {
+        sectionTexts[s.tile_id] = s.plain_text;
       }
     }
 
@@ -122,7 +117,7 @@ export default async function DashboardPage({ searchParams }: Props) {
 
   return (
     <div className="flex flex-col h-full">
-      <DashboardTopBar zones={zones} activeZoneId={params.zone} />
+      <DashboardTopBar activeZoneId={params.zone} />
       <div className="flex-1 overflow-auto p-6">
         <TileGrid
           tiles={typedTiles}

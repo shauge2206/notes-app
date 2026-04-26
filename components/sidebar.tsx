@@ -132,10 +132,10 @@ export function Sidebar({ zones }: Props) {
           }`}
         >
           <LayoutDashboard className="w-4 h-4 shrink-0" />
-          {!collapsed && <span className="truncate">Alle tiles</span>}
+          {!collapsed && <span className="truncate">Alle Focus Zones</span>}
         </button>
 
-        {!collapsed && zones.length > 0 && (
+        {!collapsed && (
           <div className="px-4 pt-4 pb-1">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               Focus Zones

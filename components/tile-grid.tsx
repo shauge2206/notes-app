@@ -1,8 +1,10 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { Plus } from "lucide-react";
 import type { Tile, FocusZone } from "@/lib/types";
 import { TileCard } from "@/components/tile-card";
+import { NewTileDialog } from "@/components/new-tile-dialog";
 import { getTileColor } from "@/lib/tile-colors";
 
 interface Props {
@@ -20,7 +22,38 @@ export function TileGrid({ tiles, zones, previews, groupByZone = true }: Props) 
   const zoneMap = new Map(zones.map((z) => [z.id, z]));
 
   if (!groupByZone) {
-    return <FlatGrid tiles={tiles} zoneMap={zoneMap} previews={previews} />;
+    const activeZone = tiles[0]?.zone_id ? zoneMap.get(tiles[0].zone_id) : undefined;
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-min">
+          {tiles.map((tile, i) => {
+            const preview = previews[tile.id];
+            return (
+              <motion.div
+                key={tile.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: i * 0.03 }}
+                className="group/tile"
+              >
+                <TileCard
+                  tile={tile}
+                  checklistPreview={
+                    preview?.type === "checklist"
+                      ? { remaining: preview.remaining, total: preview.total }
+                      : undefined
+                  }
+                  sectionPreview={
+                    preview?.type === "sections" ? preview.text : undefined
+                  }
+                />
+              </motion.div>
+            );
+          })}
+          <NewTileButton zones={zones} defaultZoneId={activeZone?.id} />
+        </div>
+      </div>
+    );
   }
 
   // Group tiles by zone
@@ -34,11 +67,12 @@ export function TileGrid({ tiles, zones, previews, groupByZone = true }: Props) 
     byZone.get(key)!.push(tile);
   }
 
+  // Include all zones, even empty ones
   for (const zoneId of zoneOrder) {
-    const zoneTiles = byZone.get(zoneId);
-    if (zoneTiles?.length) {
-      grouped.push({ zone: zoneMap.get(zoneId) ?? null, tiles: zoneTiles });
-    }
+    grouped.push({
+      zone: zoneMap.get(zoneId) ?? null,
+      tiles: byZone.get(zoneId) ?? [],
+    });
   }
 
   // Unzoned tiles at the end
@@ -91,6 +125,7 @@ export function TileGrid({ tiles, zones, previews, groupByZone = true }: Props) 
                   </motion.div>
                 );
               })}
+              <NewTileButton zones={zones} defaultZoneId={zone?.id} />
             </div>
           </div>
         );
@@ -99,48 +134,15 @@ export function TileGrid({ tiles, zones, previews, groupByZone = true }: Props) 
   );
 }
 
-function FlatGrid({
-  tiles,
-  zoneMap,
-  previews,
-}: {
-  tiles: Tile[];
-  zoneMap: Map<string, FocusZone>;
-  previews: Props["previews"];
-}) {
+function NewTileButton({ zones, defaultZoneId }: { zones: FocusZone[]; defaultZoneId?: string }) {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2 }}
-      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-min"
-    >
-      {tiles.map((tile, i) => {
-        const preview = previews[tile.id];
-        const zone = tile.zone_id ? zoneMap.get(tile.zone_id) : undefined;
-        return (
-          <motion.div
-            key={tile.id}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, delay: i * 0.03 }}
-            className="group/tile"
-          >
-            <TileCard
-              tile={tile}
-              checklistPreview={
-                preview?.type === "checklist"
-                  ? { remaining: preview.remaining, total: preview.total }
-                  : undefined
-              }
-              sectionPreview={
-                preview?.type === "sections" ? preview.text : undefined
-              }
-              zoneName={zone?.name}
-            />
-          </motion.div>
-        );
-      })}
-    </motion.div>
+    <div className="h-full">
+      <NewTileDialog zones={zones} defaultZoneId={defaultZoneId} trigger={
+        <div className="w-full h-full min-h-[140px] rounded-lg border border-dashed border-border/40 hover:border-border/80 hover:bg-accent/20 flex flex-col items-center justify-center gap-2.5 text-muted-foreground/30 hover:text-muted-foreground/60 transition-all cursor-pointer">
+          <Plus className="w-5 h-5" />
+          <span className="text-xs font-medium">Ny tile</span>
+        </div>
+      } />
+    </div>
   );
 }
