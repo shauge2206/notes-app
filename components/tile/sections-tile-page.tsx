@@ -29,8 +29,9 @@ import {
 import { updateTile, deleteTile, togglePinned } from "@/app/actions/tiles";
 import { deleteWorkSession } from "@/app/actions/work-sessions";
 import { TILE_COLORS, getTileColor } from "@/lib/tile-colors";
-import { SectionsRail } from "@/components/tile/sections-rail";
-import { SectionEditor } from "@/components/tile/section-editor";
+import dynamic from "next/dynamic";
+const SectionsRail = dynamic(() => import("@/components/tile/sections-rail").then((m) => m.SectionsRail), { ssr: false });
+const SectionEditor = dynamic(() => import("@/components/tile/section-editor").then((m) => m.SectionEditor), { ssr: false });
 import { WorkSessionPanel } from "@/components/tile/work-session-panel";
 import { ExitPrompt } from "@/components/tile/exit-prompt";
 import type { TileWithChildren, Section, WorkSession } from "@/lib/types";
@@ -300,6 +301,7 @@ export function SectionsTilePage({ tile, activeSectionId }: Props) {
               <SectionEditor
                 key={activeSection.id}
                 section={activeSection}
+                tileId={tile.id}
                 onSaveStateChange={setSaving}
                 flushRef={flushRef}
               />
