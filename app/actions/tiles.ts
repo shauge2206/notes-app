@@ -53,7 +53,10 @@ export async function createTile(input: {
         plain_text: "",
         position: 0,
       });
-      if (secError) return { ok: false, error: secError.message };
+      if (secError) {
+        console.error("Failed to create default section:", secError);
+        return { ok: false, error: secError.message };
+      }
     }
 
     revalidatePath("/");

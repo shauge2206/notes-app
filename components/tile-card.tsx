@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Pin, CheckSquare, Layers, MoreVertical } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { TileContextMenu } from "@/components/tile-context-menu";
 import { getTileColor } from "@/lib/tile-colors";
 import type { Tile } from "@/lib/types";
@@ -52,14 +51,12 @@ export function TileCard({ tile, checklistPreview, sectionPreview, zoneName }: T
                 <Layers className="w-3.5 h-3.5 text-muted-foreground" />
               )}
               <TileContextMenu tile={tile}>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="w-6 h-6 opacity-0 group-hover/tile:opacity-100 transition-opacity"
+                <div
+                  className="w-6 h-6 opacity-0 group-hover/tile:opacity-100 transition-opacity flex items-center justify-center rounded-md hover:bg-accent cursor-pointer"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <MoreVertical className="w-3.5 h-3.5" />
-                </Button>
+                </div>
               </TileContextMenu>
             </div>
           </div>
