@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/auth";
 import type { Tile, TileWithChildren, Section, ChecklistItem, WorkSession } from "@/lib/types";
 
 export async function getTiles(opts?: {
-  tag?: string;
+  zoneId?: string;
   pinnedOnly?: boolean;
   query?: string;
 }): Promise<Tile[]> {
@@ -19,8 +19,8 @@ export async function getTiles(opts?: {
     .order("position", { ascending: true })
     .order("updated_at", { ascending: false });
 
-  if (opts?.tag) {
-    q = q.contains("tags", [opts.tag]);
+  if (opts?.zoneId) {
+    q = q.eq("zone_id", opts.zoneId);
   }
   if (opts?.pinnedOnly) {
     q = q.eq("is_pinned", true);

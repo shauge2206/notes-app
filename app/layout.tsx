@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Nunito } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const nunito = Nunito({
+  variable: "--font-nunito",
   subsets: ["latin"],
 });
 
@@ -20,8 +20,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} dark h-full antialiased`}>
-      <body className="min-h-full flex flex-col font-sans bg-background text-foreground">
+    <html lang="en" className={`${nunito.variable} dark h-full antialiased`}>
+      <body className="min-h-full flex flex-col font-sans bg-background text-foreground" style={{ fontFamily: "var(--font-nunito), sans-serif" }}>
         <TooltipProvider>
           {children}
           <Toaster />

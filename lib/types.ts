@@ -3,9 +3,20 @@ export type TileType = "checklist" | "sections";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type JSONContent = any;
 
+export interface FocusZone {
+  id: string;
+  user_id: string;
+  name: string;
+  color: string;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Tile {
   id: string;
   user_id: string;
+  zone_id: string | null;
   title: string;
   type: TileType;
   color: string;
@@ -13,7 +24,6 @@ export interface Tile {
   position: number;
   is_pinned: boolean;
   is_archived: boolean;
-  tags: string[];
   created_at: string;
   updated_at: string;
 }
