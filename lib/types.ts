@@ -1,13 +1,19 @@
 export type TileType = "checklist" | "sections";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type JSONContent = any;
+
 export interface Tile {
   id: string;
   user_id: string;
   title: string;
   type: TileType;
   color: string;
+  size: string;
   position: number;
+  is_pinned: boolean;
   is_archived: boolean;
+  tags: string[];
   created_at: string;
   updated_at: string;
 }
@@ -16,7 +22,8 @@ export interface Section {
   id: string;
   tile_id: string;
   title: string;
-  content: string;
+  content: JSONContent | null;
+  plain_text: string;
   position: number;
   created_at: string;
   updated_at: string;
@@ -36,9 +43,16 @@ export interface WorkSession {
   id: string;
   tile_id: string;
   user_id: string;
-  started_at: string;
-  ended_at: string | null;
-  duration_seconds: number | null;
-  notes: string | null;
+  note: string;
   created_at: string;
 }
+
+export interface TileWithChildren extends Tile {
+  sections: Section[];
+  checklist_items: ChecklistItem[];
+  work_sessions: WorkSession[];
+}
+
+export type ActionResult<T = undefined> =
+  | { ok: true; data: T }
+  | { ok: false; error: string };
