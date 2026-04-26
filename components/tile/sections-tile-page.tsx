@@ -34,6 +34,7 @@ const SectionsRail = dynamic(() => import("@/components/tile/sections-rail").the
 const SectionEditor = dynamic(() => import("@/components/tile/section-editor").then((m) => m.SectionEditor), { ssr: false });
 import { WorkSessionPanel } from "@/components/tile/work-session-panel";
 import { ExitPrompt } from "@/components/tile/exit-prompt";
+import { TagEditor } from "@/components/tag-editor";
 import type { TileWithChildren, Section, WorkSession } from "@/lib/types";
 
 function relativeTime(dateStr: string): string {
@@ -51,12 +52,14 @@ function relativeTime(dateStr: string): string {
 interface Props {
   tile: TileWithChildren;
   activeSectionId: string;
+  allTags?: string[];
 }
 
-export function SectionsTilePage({ tile, activeSectionId }: Props) {
+export function SectionsTilePage({ tile, activeSectionId, allTags = [] }: Props) {
   const [title, setTitle] = useState(tile.title);
   const [isPinned, setIsPinned] = useState(tile.is_pinned);
   const [color, setColor] = useState(tile.color);
+  const [tags, setTags] = useState(tile.tags ?? []);
   const [saving, setSaving] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
   const [showExitPrompt, setShowExitPrompt] = useState(false);
@@ -130,6 +133,12 @@ export function SectionsTilePage({ tile, activeSectionId }: Props) {
   async function handleColorChange(c: string) {
     setColor(c);
     const result = await updateTile(tile.id, { color: c });
+    if (!result.ok) toast.error(result.error);
+  }
+
+  async function handleTagsChange(newTags: string[]) {
+    setTags(newTags);
+    const result = await updateTile(tile.id, { tags: newTags });
     if (!result.ok) toast.error(result.error);
   }
 
@@ -255,6 +264,11 @@ export function SectionsTilePage({ tile, activeSectionId }: Props) {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+        </div>
+
+        {/* Tags */}
+        <div className="px-6 py-2 border-b border-border">
+          <TagEditor tags={tags} onChange={handleTagsChange} suggestions={allTags} />
         </div>
 
         {/* Next session banner */}

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Pin, PinOff, Palette, Trash2, Pencil } from "lucide-react";
+import { Pin, PinOff, Palette, Trash2, Pencil, Tag, Plus, X } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,10 +20,13 @@ import type { Tile } from "@/lib/types";
 interface Props {
   tile: Tile;
   children: React.ReactNode;
+  allTags?: string[];
 }
 
-export function TileContextMenu({ tile, children }: Props) {
+export function TileContextMenu({ tile, children, allTags = [] }: Props) {
   const router = useRouter();
+  const tileTags = tile.tags ?? [];
+  const availableToAdd = allTags.filter((t) => !tileTags.includes(t));
 
   async function handlePin() {
     const result = await togglePinned(tile.id);
@@ -50,6 +53,34 @@ export function TileContextMenu({ tile, children }: Props) {
     const result = await updateTile(tile.id, { title: name });
     if (!result.ok) toast.error(result.error);
     else router.refresh();
+  }
+
+  async function handleAddTag(tag: string) {
+    const newTags = [...tileTags, tag];
+    const result = await updateTile(tile.id, { tags: newTags });
+    if (result.ok) {
+      router.refresh();
+    } else {
+      toast.error(result.error);
+    }
+  }
+
+  async function handleAddNewTag() {
+    const tag = prompt("Ny tag:");
+    if (!tag?.trim()) return;
+    const t = tag.trim().toLowerCase();
+    if (tileTags.includes(t)) return;
+    await handleAddTag(t);
+  }
+
+  async function handleRemoveTag(tag: string) {
+    const newTags = tileTags.filter((t) => t !== tag);
+    const result = await updateTile(tile.id, { tags: newTags });
+    if (result.ok) {
+      router.refresh();
+    } else {
+      toast.error(result.error);
+    }
   }
 
   return (
@@ -90,6 +121,45 @@ export function TileContextMenu({ tile, children }: Props) {
             </div>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+
+        {/* Add tag submenu */}
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <Tag className="w-4 h-4 mr-2" />
+            Legg til tag
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-40">
+            {availableToAdd.map((tag) => (
+              <DropdownMenuItem key={tag} onClick={() => handleAddTag(tag)}>
+                <Plus className="w-3 h-3 mr-2" />
+                #{tag}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleAddNewTag}>
+              <Plus className="w-3 h-3 mr-2" />
+              Ny tag...
+            </DropdownMenuItem>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+
+        {/* Remove tag submenu */}
+        {tileTags.length > 0 && (
+          <DropdownMenuSub>
+            <DropdownMenuSubTrigger>
+              <X className="w-4 h-4 mr-2" />
+              Fjern tag
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent className="w-40">
+              {tileTags.map((tag) => (
+                <DropdownMenuItem key={tag} onClick={() => handleRemoveTag(tag)}>
+                  #{tag}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        )}
+
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={handleDelete}

@@ -12,11 +12,15 @@ export interface TileSearchResult extends Tile {
   rank?: number;
 }
 
-export async function getTiles(opts?: {
+export interface TileFilterOptions {
   zoneId?: string;
   pinnedOnly?: boolean;
   query?: string;
-}): Promise<Tile[]> {
+  tag?: string;
+  type?: "checklist" | "sections";
+}
+
+export async function getTiles(opts?: TileFilterOptions): Promise<Tile[]> {
   const user = await requireUser();
   const supabase = await createClient();
 
@@ -37,6 +41,12 @@ export async function getTiles(opts?: {
   }
   if (opts?.query) {
     q = q.ilike("title", `%${opts.query}%`);
+  }
+  if (opts?.tag) {
+    q = q.contains("tags", [opts.tag]);
+  }
+  if (opts?.type) {
+    q = q.eq("type", opts.type);
   }
 
   const { data, error } = await q;
@@ -92,18 +102,28 @@ export async function getTileById(id: string): Promise<TileWithChildren> {
   };
 }
 
-export async function searchTiles(query: string): Promise<TileSearchResult[]> {
+export async function searchTiles(
+  query: string,
+  filters?: { tag?: string; pinnedOnly?: boolean; type?: string; zoneId?: string }
+): Promise<TileSearchResult[]> {
   const user = await requireUser();
   const supabase = await createClient();
   const q = query.trim();
 
   // Always search tile titles
-  const { data: titleMatches } = await supabase
+  let titleQuery = supabase
     .from("tiles")
     .select("*")
     .eq("user_id", user.id)
     .eq("is_archived", false)
     .ilike("title", `%${q}%`);
+
+  if (filters?.tag) titleQuery = titleQuery.contains("tags", [filters.tag]);
+  if (filters?.pinnedOnly) titleQuery = titleQuery.eq("is_pinned", true);
+  if (filters?.type) titleQuery = titleQuery.eq("type", filters.type);
+  if (filters?.zoneId) titleQuery = titleQuery.eq("zone_id", filters.zoneId);
+
+  const { data: titleMatches } = await titleQuery;
 
   const results = new Map<string, TileSearchResult>();
   for (const t of titleMatches ?? []) {
@@ -145,14 +165,20 @@ export async function searchTiles(query: string): Promise<TileSearchResult[]> {
           existing.rank = 2;
         }
       } else {
-        // Need to fetch the tile
-        const { data: tile } = await supabase
+        // Need to fetch the tile with filters
+        let tileQuery = supabase
           .from("tiles")
           .select("*")
           .eq("id", s.tile_id)
           .eq("user_id", user.id)
-          .eq("is_archived", false)
-          .single();
+          .eq("is_archived", false);
+
+        if (filters?.tag) tileQuery = tileQuery.contains("tags", [filters.tag]);
+        if (filters?.pinnedOnly) tileQuery = tileQuery.eq("is_pinned", true);
+        if (filters?.type) tileQuery = tileQuery.eq("type", filters.type);
+        if (filters?.zoneId) tileQuery = tileQuery.eq("zone_id", filters.zoneId);
+
+        const { data: tile } = await tileQuery.single();
 
         if (tile) {
           results.set(s.tile_id, { ...(tile as Tile), match, rank: 2 });
@@ -168,13 +194,19 @@ export async function searchTiles(query: string): Promise<TileSearchResult[]> {
 
     for (const s of sectionTitleMatches ?? []) {
       if (results.has(s.tile_id)) continue;
-      const { data: tile } = await supabase
+      let tileQuery = supabase
         .from("tiles")
         .select("*")
         .eq("id", s.tile_id)
         .eq("user_id", user.id)
-        .eq("is_archived", false)
-        .single();
+        .eq("is_archived", false);
+
+      if (filters?.tag) tileQuery = tileQuery.contains("tags", [filters.tag]);
+      if (filters?.pinnedOnly) tileQuery = tileQuery.eq("is_pinned", true);
+      if (filters?.type) tileQuery = tileQuery.eq("type", filters.type);
+      if (filters?.zoneId) tileQuery = tileQuery.eq("zone_id", filters.zoneId);
+
+      const { data: tile } = await tileQuery.single();
 
       if (tile) {
         results.set(s.tile_id, {

@@ -1,12 +1,13 @@
 import { Sidebar } from "@/components/sidebar";
 import { getFocusZones } from "@/lib/queries/focus-zones";
+import { getAllTags } from "@/lib/queries/tags";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const zones = await getFocusZones();
+  const [zones, tags] = await Promise.all([getFocusZones(), getAllTags()]);
 
   return (
     <div className="flex h-full">
-      <Sidebar zones={zones} />
+      <Sidebar zones={zones} tags={tags} />
       <main className="flex-1 overflow-auto">{children}</main>
     </div>
   );

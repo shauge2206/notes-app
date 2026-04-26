@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
 import { getFocusZones } from "@/lib/queries/focus-zones";
+import { getAllTags } from "@/lib/queries/tags";
 import { searchTiles, type TileSearchResult } from "@/lib/queries/tiles";
 import { DashboardTopBar } from "@/components/dashboard-top-bar";
 import { TileGrid } from "@/components/tile-grid";
@@ -8,19 +9,25 @@ import { EmptyState } from "@/components/empty-state";
 import type { Tile } from "@/lib/types";
 
 interface Props {
-  searchParams: Promise<{ q?: string; zone?: string }>;
+  searchParams: Promise<{ q?: string; zone?: string; tag?: string; pinned?: string; type?: string }>;
 }
 
 export default async function DashboardPage({ searchParams }: Props) {
   const params = await searchParams;
   const user = await requireUser();
   const supabase = await createClient();
-  const zones = await getFocusZones();
+  const [zones, tagCounts] = await Promise.all([getFocusZones(), getAllTags()]);
+  const allTags = tagCounts.map((t) => t.tag);
   const isSearching = !!params.q?.trim();
 
   // Search mode
   if (isSearching) {
-    const results = await searchTiles(params.q!);
+    const results = await searchTiles(params.q!, {
+      tag: params.tag,
+      pinnedOnly: params.pinned === "1",
+      type: params.type === "checklist" || params.type === "sections" ? params.type : undefined,
+      zoneId: params.zone,
+    });
 
     // Build search previews from match data
     const previews: Record<
@@ -52,6 +59,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                 zones={zones}
                 previews={previews}
                 groupByZone={false}
+                allTags={allTags}
               />
             </>
           ) : (
@@ -84,6 +92,15 @@ export default async function DashboardPage({ searchParams }: Props) {
 
   if (params.zone) {
     query = query.eq("zone_id", params.zone);
+  }
+  if (params.tag) {
+    query = query.contains("tags", [params.tag]);
+  }
+  if (params.pinned === "1") {
+    query = query.eq("is_pinned", true);
+  }
+  if (params.type === "checklist" || params.type === "sections") {
+    query = query.eq("type", params.type);
   }
 
   const { data: tiles } = await query;
@@ -160,6 +177,7 @@ export default async function DashboardPage({ searchParams }: Props) {
           zones={zones}
           previews={previews}
           groupByZone={!params.zone}
+          allTags={allTags}
         />
       </div>
     </div>

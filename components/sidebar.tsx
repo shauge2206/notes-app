@@ -31,13 +31,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { createFocusZone, updateFocusZone, deleteFocusZone } from "@/app/actions/focus-zones";
 import { TILE_COLORS, getTileColor } from "@/lib/tile-colors";
+import { SidebarFilters } from "@/components/sidebar-filters";
 import type { FocusZone } from "@/lib/types";
+import type { TagCount } from "@/lib/queries/tags";
 
 interface Props {
   zones: FocusZone[];
+  tags: TagCount[];
 }
 
-export function Sidebar({ zones }: Props) {
+export function Sidebar({ zones, tags }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const [creatingZone, setCreatingZone] = useState(false);
   const [newZoneName, setNewZoneName] = useState("");
@@ -249,6 +252,9 @@ export function Sidebar({ zones }: Props) {
           </div>
         )}
       </div>
+
+      {/* Filters */}
+      <SidebarFilters tags={tags} collapsed={collapsed} />
 
       {/* Footer */}
       <div className="border-t border-border px-3 py-3">

@@ -11,6 +11,7 @@ export async function createTile(input: {
   color?: string;
   size?: string;
   zone_id?: string;
+  tags?: string[];
 }): Promise<ActionResult<{ id: string }>> {
   try {
     const user = await requireUser();
@@ -36,6 +37,7 @@ export async function createTile(input: {
         size: input.size ?? "medium",
         position,
         zone_id: input.zone_id ?? null,
+        tags: input.tags ?? [],
         is_pinned: false,
         is_archived: false,
       })

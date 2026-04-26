@@ -20,16 +20,19 @@ import {
 import { updateTile, deleteTile, togglePinned } from "@/app/actions/tiles";
 import { TILE_COLORS, getTileColor } from "@/lib/tile-colors";
 import { AnimatedChecklist } from "@/components/tile/animated-checklist";
+import { TagEditor } from "@/components/tag-editor";
 import type { TileWithChildren } from "@/lib/types";
 
 interface Props {
   tile: TileWithChildren;
+  allTags?: string[];
 }
 
-export function ChecklistTilePage({ tile }: Props) {
+export function ChecklistTilePage({ tile, allTags = [] }: Props) {
   const [title, setTitle] = useState(tile.title);
   const [isPinned, setIsPinned] = useState(tile.is_pinned);
   const [color, setColor] = useState(tile.color);
+  const [tags, setTags] = useState(tile.tags ?? []);
   const titleRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const tileColor = getTileColor(color);
@@ -57,6 +60,12 @@ export function ChecklistTilePage({ tile }: Props) {
   async function handleColorChange(c: string) {
     setColor(c);
     const result = await updateTile(tile.id, { color: c });
+    if (!result.ok) toast.error(result.error);
+  }
+
+  async function handleTagsChange(newTags: string[]) {
+    setTags(newTags);
+    const result = await updateTile(tile.id, { tags: newTags });
     if (!result.ok) toast.error(result.error);
   }
 
@@ -137,6 +146,11 @@ export function ChecklistTilePage({ tile }: Props) {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+      </div>
+
+      {/* Tags */}
+      <div className="px-6 py-2 border-b border-border">
+        <TagEditor tags={tags} onChange={handleTagsChange} suggestions={allTags} />
       </div>
 
       {/* Content */}

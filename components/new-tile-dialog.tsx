@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { createTile } from "@/app/actions/tiles";
 import { TILE_COLORS, getTileColor } from "@/lib/tile-colors";
+import { TagEditor } from "@/components/tag-editor";
 import type { TileType, FocusZone } from "@/lib/types";
 
 const SIZES = ["sm", "md", "lg"] as const;
@@ -26,9 +27,10 @@ interface Props {
   zones: FocusZone[];
   defaultZoneId?: string;
   trigger?: React.ReactNode;
+  allTags?: string[];
 }
 
-export function NewTileDialog({ zones, defaultZoneId, trigger }: Props) {
+export function NewTileDialog({ zones, defaultZoneId, trigger, allTags = [] }: Props) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [type, setType] = useState<TileType | null>(null);
@@ -36,6 +38,7 @@ export function NewTileDialog({ zones, defaultZoneId, trigger }: Props) {
   const [color, setColor] = useState("blue");
   const [size, setSize] = useState("md");
   const [zoneId, setZoneId] = useState(defaultZoneId ?? "");
+  const [tags, setTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -46,6 +49,7 @@ export function NewTileDialog({ zones, defaultZoneId, trigger }: Props) {
     setColor("blue");
     setSize("md");
     setZoneId(defaultZoneId ?? "");
+    setTags([]);
   }
 
   function handleOpenChange(next: boolean) {
@@ -70,6 +74,7 @@ export function NewTileDialog({ zones, defaultZoneId, trigger }: Props) {
       color,
       size,
       zone_id: zoneId || undefined,
+      tags: tags.length > 0 ? tags : undefined,
     });
 
     if (result.ok) {
@@ -234,6 +239,12 @@ export function NewTileDialog({ zones, defaultZoneId, trigger }: Props) {
                       </Button>
                     ))}
                   </div>
+                </div>
+
+                {/* Tags */}
+                <div className="space-y-2">
+                  <Label>Tags</Label>
+                  <TagEditor tags={tags} onChange={setTags} suggestions={allTags} />
                 </div>
 
                 {/* Actions */}

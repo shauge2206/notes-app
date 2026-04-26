@@ -16,9 +16,10 @@ interface Props {
     | { type: "sections"; text: string }
   >;
   groupByZone?: boolean;
+  allTags?: string[];
 }
 
-export function TileGrid({ tiles, zones, previews, groupByZone = true }: Props) {
+export function TileGrid({ tiles, zones, previews, groupByZone = true, allTags = [] }: Props) {
   const zoneMap = new Map(zones.map((z) => [z.id, z]));
 
   if (!groupByZone) {
@@ -46,6 +47,7 @@ export function TileGrid({ tiles, zones, previews, groupByZone = true }: Props) 
                   sectionPreview={
                     preview?.type === "sections" ? preview.text : undefined
                   }
+                  allTags={allTags}
                 />
               </motion.div>
             );
@@ -121,6 +123,7 @@ export function TileGrid({ tiles, zones, previews, groupByZone = true }: Props) 
                       sectionPreview={
                         preview?.type === "sections" ? preview.text : undefined
                       }
+                      allTags={allTags}
                     />
                   </motion.div>
                 );

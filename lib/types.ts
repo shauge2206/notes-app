@@ -24,6 +24,7 @@ export interface Tile {
   position: number;
   is_pinned: boolean;
   is_archived: boolean;
+  tags: string[];
   created_at: string;
   updated_at: string;
 }

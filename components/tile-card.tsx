@@ -13,9 +13,10 @@ interface TileCardProps {
   checklistPreview?: { remaining: number; total: number };
   sectionPreview?: string;
   zoneName?: string;
+  allTags?: string[];
 }
 
-export function TileCard({ tile, checklistPreview, sectionPreview, zoneName }: TileCardProps) {
+export function TileCard({ tile, checklistPreview, sectionPreview, zoneName, allTags }: TileCardProps) {
   const router = useRouter();
   const color = getTileColor(tile.color);
 
@@ -50,7 +51,7 @@ export function TileCard({ tile, checklistPreview, sectionPreview, zoneName }: T
               ) : (
                 <Layers className="w-3.5 h-3.5 text-muted-foreground" />
               )}
-              <TileContextMenu tile={tile}>
+              <TileContextMenu tile={tile} allTags={allTags}>
                 <div
                   className="w-6 h-6 opacity-0 group-hover/tile:opacity-100 transition-opacity flex items-center justify-center rounded-md hover:bg-accent cursor-pointer"
                   onClick={(e) => e.stopPropagation()}
