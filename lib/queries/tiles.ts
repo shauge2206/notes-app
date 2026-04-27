@@ -138,52 +138,17 @@ export async function searchTiles(
       .select("tile_id, title, plain_text")
       .textSearch("search_vector", q, { type: "plain", config: "norwegian" });
 
+    // Build match data from section results
+    const sectionMatchData: Map<string, SearchMatch> = new Map();
     for (const s of sectionMatches ?? []) {
-      // Extract snippet around match
+      if (sectionMatchData.has(s.tile_id)) continue;
       const lowerText = (s.plain_text ?? "").toLowerCase();
       const lowerQ = q.toLowerCase();
       const idx = lowerText.indexOf(lowerQ);
-      let snippet = "";
-      if (idx !== -1) {
-        const start = Math.max(0, idx - 40);
-        const end = Math.min(lowerText.length, idx + q.length + 80);
-        snippet = (start > 0 ? "…" : "") + (s.plain_text ?? "").slice(start, end) + (end < lowerText.length ? "…" : "");
-      } else {
-        snippet = (s.plain_text ?? "").slice(0, 120);
-      }
-
-      const existing = results.get(s.tile_id);
-      const match: SearchMatch = {
-        sectionTitle: s.title,
-        snippet,
-      };
-
-      if (existing) {
-        // Keep the better match
-        if (!existing.match) {
-          existing.match = match;
-          existing.rank = 2;
-        }
-      } else {
-        // Need to fetch the tile with filters
-        let tileQuery = supabase
-          .from("tiles")
-          .select("*")
-          .eq("id", s.tile_id)
-          .eq("user_id", user.id)
-          .eq("is_archived", false);
-
-        if (filters?.tag) tileQuery = tileQuery.contains("tags", [filters.tag]);
-        if (filters?.pinnedOnly) tileQuery = tileQuery.eq("is_pinned", true);
-        if (filters?.type) tileQuery = tileQuery.eq("type", filters.type);
-        if (filters?.zoneId) tileQuery = tileQuery.eq("zone_id", filters.zoneId);
-
-        const { data: tile } = await tileQuery.single();
-
-        if (tile) {
-          results.set(s.tile_id, { ...(tile as Tile), match, rank: 2 });
-        }
-      }
+      const snippet = idx !== -1
+        ? (idx > 40 ? "…" : "") + (s.plain_text ?? "").slice(Math.max(0, idx - 40), idx + q.length + 80) + (idx + q.length + 80 < lowerText.length ? "…" : "")
+        : (s.plain_text ?? "").slice(0, 120);
+      sectionMatchData.set(s.tile_id, { sectionTitle: s.title, snippet });
     }
 
     // Also search section titles via ILIKE
@@ -193,11 +158,21 @@ export async function searchTiles(
       .ilike("title", `%${q}%`);
 
     for (const s of sectionTitleMatches ?? []) {
-      if (results.has(s.tile_id)) continue;
+      if (!sectionMatchData.has(s.tile_id)) {
+        sectionMatchData.set(s.tile_id, {
+          sectionTitle: s.title,
+          snippet: (s.plain_text ?? "").slice(0, 120),
+        });
+      }
+    }
+
+    // Batch-fetch all tiles we don't already have — single query instead of N sequential
+    const missingTileIds = [...sectionMatchData.keys()].filter((id) => !results.has(id));
+    if (missingTileIds.length > 0) {
       let tileQuery = supabase
         .from("tiles")
-        .select("*")
-        .eq("id", s.tile_id)
+        .select("id, user_id, zone_id, title, type, color, size, position, is_pinned, is_archived, tags, created_at, updated_at")
+        .in("id", missingTileIds)
         .eq("user_id", user.id)
         .eq("is_archived", false);
 
@@ -206,14 +181,19 @@ export async function searchTiles(
       if (filters?.type) tileQuery = tileQuery.eq("type", filters.type);
       if (filters?.zoneId) tileQuery = tileQuery.eq("zone_id", filters.zoneId);
 
-      const { data: tile } = await tileQuery.single();
+      const { data: tiles } = await tileQuery;
+      for (const tile of tiles ?? []) {
+        const match = sectionMatchData.get(tile.id);
+        results.set(tile.id, { ...(tile as Tile), match, rank: match ? 2 : 1.5 });
+      }
+    }
 
-      if (tile) {
-        results.set(s.tile_id, {
-          ...(tile as Tile),
-          match: { sectionTitle: s.title, snippet: (s.plain_text ?? "").slice(0, 120) },
-          rank: 1.5,
-        });
+    // Add match data to tiles we already had from title search
+    for (const [tileId, match] of sectionMatchData) {
+      const existing = results.get(tileId);
+      if (existing && !existing.match) {
+        existing.match = match;
+        existing.rank = 2;
       }
     }
   }

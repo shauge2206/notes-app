@@ -83,7 +83,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   // Normal mode
   let query = supabase
     .from("tiles")
-    .select("*")
+    .select("id, user_id, zone_id, title, type, color, size, position, is_pinned, is_archived, tags, created_at, updated_at")
     .eq("user_id", user.id)
     .eq("is_archived", false)
     .order("is_pinned", { ascending: false })

@@ -137,3 +137,33 @@
     border-radius: 4px;
   }
 }
+
+@keyframes shimmer-slide {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background-size: 200% 100%;
+  animation: shimmer-slide 3s ease-in-out infinite;
+}
+
+@property --gradient-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes border-rotate {
+  0% { --gradient-angle: 0deg; }
+  100% { --gradient-angle: 360deg; }
+}
+
+.animate-border-rotate {
+  --gradient-angle: 0deg;
+  transition: opacity 0.3s;
+}
+
+.animate-border-rotate:hover {
+  animation: border-rotate 4s linear infinite;
+}

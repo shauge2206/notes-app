@@ -34,7 +34,7 @@ export function SidebarFilters({ tags, collapsed }: Props) {
     <div className="px-3 py-2 space-y-3">
       {/* Type & pinned filters */}
       <div className="space-y-0.5">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1 mb-1">
+        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide px-1 mb-1">
           Filter
         </p>
         <FilterButton
@@ -60,7 +60,7 @@ export function SidebarFilters({ tags, collapsed }: Props) {
       {/* Tags */}
       {tags.length > 0 && (
         <div className="space-y-0.5">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1 mb-1">
+          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide px-1 mb-1">
             Tags
           </p>
           {tags.map(({ tag, count }) => (
@@ -69,7 +69,7 @@ export function SidebarFilters({ tags, collapsed }: Props) {
               onClick={() => toggleParam("tag", tag)}
               className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors ${
                 activeTag === tag
-                  ? "bg-accent text-foreground"
+                  ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
               }`}
             >
@@ -100,7 +100,7 @@ function FilterButton({
       onClick={onClick}
       className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors ${
         active
-          ? "bg-accent text-foreground"
+          ? "bg-primary/10 text-primary"
           : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
       }`}
     >

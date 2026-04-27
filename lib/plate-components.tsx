@@ -155,11 +155,11 @@ export function ParagraphElement(props: PlateElementProps) {
   return <PlateElement {...props} as="p" className="my-1" />;
 }
 
-// Table components
+// Table components — clean list-style design
 export function TableElement(props: PlateElementProps) {
   return (
-    <PlateElement {...props} as="div" className="my-4 mt-8 relative ml-6 overflow-visible">
-      <table className="w-full border-collapse table-fixed overflow-visible">
+    <PlateElement {...props} as="div" className="my-6 rounded-lg border border-white/[0.08] bg-white/[0.02] overflow-hidden">
+      <table className="w-full border-collapse table-fixed">
         {props.children}
       </table>
     </PlateElement>
@@ -180,16 +180,15 @@ export function TableRowElement(props: PlateElementProps) {
   }
 
   return (
-    <PlateElement {...props} as="tr" className="group/row relative overflow-visible">
+    <PlateElement {...props} as="tr" className="group/row relative border-b border-white/[0.06] last:border-b-0 hover:bg-white/[0.03] transition-colors">
       {props.children}
-      {/* Row delete — outside left of table */}
       <td className="!p-0 !border-0 !w-0 !min-w-0" contentEditable={false}>
         <button
           onMouseDown={deleteRow}
-          className="absolute -left-5 top-1/2 -translate-y-1/2 opacity-0 group-hover/row:opacity-50 hover:!opacity-100 transition-opacity p-0.5 rounded bg-destructive/10 hover:bg-destructive/20 text-destructive/50 hover:text-destructive"
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover/row:opacity-40 hover:!opacity-100 transition-opacity p-1 text-destructive/50 hover:text-destructive"
           title="Slett rad"
         >
-          <X className="w-2.5 h-2.5" />
+          <X className="w-3 h-3" />
         </button>
       </td>
     </PlateElement>
@@ -201,9 +200,11 @@ export function TableCellElement(props: PlateElementProps) {
     <PlateElement
       {...props}
       as="td"
-      className="border border-white/10 px-2 py-1.5 text-sm align-top break-words max-w-0"
+      className="px-4 py-2.5 text-sm align-top break-words relative"
     >
       {props.children}
+      {/* Fading vertical separator */}
+      <span className="absolute right-0 top-[15%] h-[70%] w-px bg-gradient-to-b from-transparent via-white/[0.07] to-transparent pointer-events-none" />
     </PlateElement>
   );
 }
@@ -215,25 +216,17 @@ export function TableHeaderCellElement(props: PlateElementProps) {
     e.preventDefault();
     e.stopPropagation();
     const cellPath = editor.api.findPath(props.element);
-    console.log("[deleteCol] cellPath:", cellPath);
     if (!cellPath || cellPath.length < 2) return;
 
     const colIndex = cellPath[cellPath.length - 1];
     const tablePath = cellPath.slice(0, -2);
-    console.log("[deleteCol] colIndex:", colIndex, "tablePath:", tablePath);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let tableNode: any = { children: editor.children };
     for (const idx of tablePath) {
       tableNode = tableNode?.children?.[idx];
     }
-    console.log("[deleteCol] tableNode type:", tableNode?.type, "rows:", tableNode?.children?.length);
     if (!tableNode?.children) return;
-
-    // Log each row's column count
-    tableNode.children.forEach((row: { children?: unknown[] }, i: number) => {
-      console.log("[deleteCol] row", i, "cols:", row.children?.length);
-    });
 
     const rowCount = tableNode.children.length;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -241,9 +234,7 @@ export function TableHeaderCellElement(props: PlateElementProps) {
 
     Editor.withoutNormalizing(ed, () => {
       for (let r = rowCount - 1; r >= 0; r--) {
-        const path = [...tablePath, r, colIndex];
-        console.log("[deleteCol] removing at:", path);
-        Transforms.removeNodes(ed, { at: path });
+        Transforms.removeNodes(ed, { at: [...tablePath, r, colIndex] });
       }
     });
   }
@@ -252,16 +243,18 @@ export function TableHeaderCellElement(props: PlateElementProps) {
     <PlateElement
       {...props}
       as="th"
-      className="border border-white/10 bg-white/5 px-2 py-1.5 text-sm font-semibold text-left align-top break-words max-w-0 relative group/cell overflow-visible"
+      className="px-4 py-2.5 text-xs font-semibold text-white/40 uppercase tracking-wider text-left align-top break-words relative group/cell bg-white/[0.04] border-b border-white/[0.08]"
     >
       {props.children}
+      {/* Fading vertical separator */}
+      <span className="absolute right-0 top-[15%] h-[70%] w-px bg-gradient-to-b from-transparent via-white/[0.07] to-transparent pointer-events-none" />
       <button
         contentEditable={false}
         onMouseDown={deleteColumn}
-        className="absolute -top-5 left-1/2 -translate-x-1/2 opacity-0 group-hover/cell:opacity-50 hover:!opacity-100 transition-opacity p-0.5 rounded bg-destructive/10 hover:bg-destructive/20 text-destructive/50 hover:text-destructive"
+        className="absolute top-1.5 right-1.5 opacity-0 group-hover/cell:opacity-40 hover:!opacity-100 transition-opacity p-0.5 text-destructive/50 hover:text-destructive"
         title="Slett kolonne"
       >
-        <X className="w-2.5 h-2.5" />
+        <X className="w-3 h-3" />
       </button>
     </PlateElement>
   );

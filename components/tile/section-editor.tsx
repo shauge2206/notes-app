@@ -51,7 +51,6 @@ export function SectionEditor({ section, tileId, onSaveStateChange, flushRef }: 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const lastImageUrls = useRef<Set<string>>(new Set());
-  const lastContentRef = useRef<string>("");
 
   const editor = usePlateEditor({
     plugins: [
@@ -134,7 +133,6 @@ export function SectionEditor({ section, tileId, onSaveStateChange, flushRef }: 
     setTitle(section.title);
     const val = (section.content as EditorValue) ?? defaultValue;
     lastImageUrls.current = extractImageUrls(val);
-    lastContentRef.current = JSON.stringify(val);
     setSlashOpen(false);
   }, [section.id]);
 
@@ -165,20 +163,18 @@ export function SectionEditor({ section, tileId, onSaveStateChange, flushRef }: 
 
   useEffect(() => {
     if (flushRef) flushRef.current = save;
+    // Flush on unmount to prevent data loss
     return () => {
       if (flushRef) flushRef.current = null;
+      if (pendingRef.current) save();
     };
   }, [save, flushRef]);
 
   function handleChange() {
-    // Only schedule save if content actually changed (not just selection/cursor)
-    const currentContent = JSON.stringify(editor.children);
-    if (currentContent !== lastContentRef.current) {
-      lastContentRef.current = currentContent;
-      pendingRef.current = true;
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(save, 60000);
-    }
+    // onValueChange only fires on actual content changes, not selection
+    pendingRef.current = true;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(save, 60000);
 
     // Detect slash command
     detectSlash();

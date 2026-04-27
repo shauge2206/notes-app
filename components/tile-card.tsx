@@ -27,11 +27,37 @@ export const TileCard = memo(function TileCard({ tile, checklistPreview, section
       transition={{ duration: 0.15 }}
     >
       <Link href={`/tile/${tile.id}`} aria-label={`Åpne ${tile.title}`}>
-      <Card
-        className="relative overflow-hidden cursor-pointer h-full flex flex-col border-border/50 hover:border-border transition-colors group/tile"
+      <div
+        className="animate-border-rotate rounded-xl h-full"
+        style={{
+          border: "1px solid rgba(255,255,255,0.06)",
+          backgroundImage: `
+            linear-gradient(var(--background), var(--background)),
+            conic-gradient(
+              from var(--gradient-angle, 0deg),
+              transparent 0%,
+              ${color.hexDark}40 20%,
+              ${color.hex}60 30%,
+              ${color.hexLight}80 35%,
+              ${color.hex}60 40%,
+              transparent 50%,
+              transparent 100%
+            )
+          `,
+          backgroundClip: "padding-box, border-box",
+          backgroundOrigin: "padding-box, border-box",
+        }}
       >
-        {/* Color accent strip */}
-        <div className={`h-1.5 ${color.accent}`} />
+      <Card
+        className="relative overflow-hidden cursor-pointer h-full flex flex-col border-0 group/tile"
+      >
+        {/* Color accent strip with animated shimmer */}
+        <div
+          className="h-2.5 animate-shimmer"
+          style={{
+            backgroundImage: `linear-gradient(90deg, ${color.hex} 0%, ${color.hexLight} 25%, ${color.hex} 50%, ${color.hexLight} 75%, ${color.hex} 100%)`,
+          }}
+        />
 
         <div className="flex flex-col gap-2 p-4 flex-1">
           {/* Header row */}
@@ -76,6 +102,7 @@ export const TileCard = memo(function TileCard({ tile, checklistPreview, section
           )}
         </div>
       </Card>
+      </div>
       </Link>
     </motion.div>
   );

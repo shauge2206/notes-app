@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import Image from "next/image";
 import { useEditorRef } from "@udecode/plate/react";
 import {
   AlignLeft,
@@ -130,16 +131,17 @@ export function InlineImage({ attributes, children, element }: any) {
         onBlur={() => setSelected(false)}
         tabIndex={-1}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={url}
           alt={altText}
-          className={`w-full rounded-md border transition-shadow ${
+          width={800}
+          height={600}
+          className={`w-full h-auto rounded-md border transition-shadow ${
             selected ? "border-primary ring-2 ring-primary/30" : "border-border/30"
           }`}
           draggable={false}
-          loading="lazy"
-          style={{ aspectRatio: "auto" }}
+          sizes="(max-width: 768px) 100vw, 720px"
+          quality={85}
         />
 
         {/* Resize handle — desktop only */}
