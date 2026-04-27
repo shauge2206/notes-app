@@ -199,7 +199,7 @@ export function SectionsTilePage({ tile, activeSectionId, allTags = [] }: Props)
 
   if (!activeSection) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col flex-1 min-h-0">
         <div className="flex items-center gap-3 px-4 h-14 border-b border-border shrink-0">
           <Button variant="ghost" size="icon" onClick={() => router.push("/")} aria-label="Tilbake til dashboard">
             <ArrowLeft className="w-4 h-4" />
@@ -224,7 +224,7 @@ export function SectionsTilePage({ tile, activeSectionId, allTags = [] }: Props)
 
   return (
     <>
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col flex-1 min-h-0">
         {/* Header */}
         <div className="flex items-center gap-3 px-4 h-14 border-b border-border shrink-0">
           <Button
@@ -315,16 +315,23 @@ export function SectionsTilePage({ tile, activeSectionId, allTags = [] }: Props)
             initial={{ opacity: 0.7 }}
             animate={{ opacity: [0.7, 1, 0.7, 1] }}
             transition={{ duration: 1.5, times: [0, 0.3, 0.6, 1] }}
-            className="flex items-center gap-3 px-6 py-2 border-b border-border text-sm"
-            style={{ borderLeftWidth: 3, borderLeftColor: `var(--color-${color}-500, hsl(var(--primary)))` }}
+            className="flex items-center gap-3 px-6 py-2.5 border-b border-border text-sm"
+            style={{
+              borderLeftWidth: 3,
+              borderLeftColor: tileColor.hex,
+              backgroundColor: `${tileColor.hex}08`,
+            }}
           >
-            <span className="text-[10px] uppercase font-semibold text-muted-foreground shrink-0">
-              Neste steg:
+            <span
+              className="text-[10px] uppercase font-bold tracking-wider shrink-0 px-1.5 py-0.5 rounded"
+              style={{ color: tileColor.hex, backgroundColor: `${tileColor.hex}15` }}
+            >
+              Neste steg
             </span>
-            <p className="flex-1 text-foreground line-clamp-2 text-xs">
+            <p className="flex-1 text-foreground/90 line-clamp-2 text-xs font-medium">
               {latestSession.note}
             </p>
-            <span className="text-[10px] text-muted-foreground/50 shrink-0">
+            <span className="text-[10px] text-muted-foreground/40 shrink-0">
               {relativeTime(latestSession.created_at)}
             </span>
             <button
@@ -339,7 +346,7 @@ export function SectionsTilePage({ tile, activeSectionId, allTags = [] }: Props)
         )}
 
         {/* Body */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 min-h-0">
           {/* Left rail */}
           <div className="w-[220px] border-r border-border overflow-y-auto shrink-0 hidden md:block">
             <SectionsRail
@@ -351,7 +358,7 @@ export function SectionsTilePage({ tile, activeSectionId, allTags = [] }: Props)
             />
           </div>
 
-          {/* Center editor */}
+          {/* Center editor — scroll container */}
           <div className="flex-1 overflow-y-auto">
             <AnimatePresence mode="wait">
             <motion.div
@@ -360,7 +367,7 @@ export function SectionsTilePage({ tile, activeSectionId, allTags = [] }: Props)
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="px-6 py-6 mr-20"
+              className="px-6 py-6 pr-6"
             >
               <SectionEditor
                 section={activeSection}

@@ -21,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${nunito.variable} dark h-full antialiased`}>
-      <body className="min-h-full flex flex-col font-sans bg-background text-foreground" style={{ fontFamily: "var(--font-nunito), sans-serif" }}>
+      <body className="h-full flex flex-col font-sans bg-background text-foreground" style={{ fontFamily: "var(--font-nunito), sans-serif" }}>
         <TooltipProvider>
           {children}
           <Toaster />

@@ -25,10 +25,10 @@ export default async function TilePage({
   const allTags = tagCounts.map((t) => t.tag);
 
   if (tile.type === "checklist") {
-    return <ChecklistTilePage tile={tile} allTags={allTags} />;
+    return <div className="flex-1 flex flex-col min-h-0"><ChecklistTilePage tile={tile} allTags={allTags} /></div>;
   }
 
   const activeSectionId = sectionId ?? tile.sections[0]?.id ?? "";
 
-  return <SectionsTilePage tile={tile} activeSectionId={activeSectionId} allTags={allTags} />;
+  return <div className="flex-1 flex flex-col min-h-0"><SectionsTilePage tile={tile} activeSectionId={activeSectionId} allTags={allTags} /></div>;
 }

@@ -86,11 +86,23 @@ export const TileCard = memo(function TileCard({ tile, checklistPreview, section
           </div>
 
           {/* Preview */}
-          <p className="text-xs text-muted-foreground line-clamp-3 flex-1">
-            {tile.type === "checklist" && checklistPreview
-              ? `${checklistPreview.remaining} av ${checklistPreview.total} gjenstår`
-              : sectionPreview || "Ingen innhold ennå"}
-          </p>
+          <div className="text-xs text-muted-foreground line-clamp-3 flex-1">
+            {tile.type === "checklist" && checklistPreview ? (
+              `${checklistPreview.remaining} av ${checklistPreview.total} gjenstår`
+            ) : sectionPreview?.startsWith("Neste steg:") ? (
+              <>
+                <span
+                  className="font-bold text-[10px] uppercase tracking-wider mr-1.5 px-1 py-0.5 rounded"
+                  style={{ color: color.hex, backgroundColor: `${color.hex}18` }}
+                >
+                  Neste steg
+                </span>
+                <span className="text-foreground/70">{sectionPreview.slice(12)}</span>
+              </>
+            ) : (
+              sectionPreview || "Ingen innhold ennå"
+            )}
+          </div>
 
           {/* Zone label */}
           {zoneName && (

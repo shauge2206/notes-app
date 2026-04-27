@@ -129,6 +129,14 @@
   }
   html {
     @apply font-sans;
+    scroll-behavior: smooth;
+  }
+  /* Smoother scroll on all scrollable containers */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.08) transparent;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
   /* Visible focus rings on keyboard nav */
   :focus-visible {

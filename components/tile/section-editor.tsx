@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Plate, PlateContent, usePlateEditor } from "@udecode/plate/react";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type EditorValue = any;
+import { Transforms as SlateTransforms } from "slate";
 import { BoldPlugin, ItalicPlugin, UnderlinePlugin, StrikethroughPlugin, CodePlugin, SuperscriptPlugin, SubscriptPlugin } from "@udecode/plate-basic-marks/react";
 import { HeadingPlugin } from "@udecode/plate-heading/react";
 import { BlockquotePlugin } from "@udecode/plate-block-quote/react";
@@ -372,13 +373,39 @@ export function SectionEditor({ section, tileId, onSaveStateChange, flushRef }: 
   }
 
   function handlePaste(e: React.ClipboardEvent) {
+    // Handle image paste
     const files = Array.from(e.clipboardData.files).filter((f) =>
       f.type.startsWith("image/")
     );
-    if (files.length === 0) return;
-    e.preventDefault();
-    e.stopPropagation();
-    files.forEach((f) => insertImageFromFile(f));
+    if (files.length > 0) {
+      e.preventDefault();
+      e.stopPropagation();
+      files.forEach((f) => insertImageFromFile(f));
+      return;
+    }
+
+    // Handle multi-line paste inside code blocks
+    if (editor.selection) {
+      const path = editor.selection.anchor.path;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let node: any = { children: editor.children };
+      let inCodeBlock = false;
+      for (let i = 0; i < path.length; i++) {
+        node = node?.children?.[path[i]];
+        if (node?.type === "code_block") { inCodeBlock = true; break; }
+      }
+
+      if (inCodeBlock) {
+        const text = e.clipboardData.getData("text/plain");
+        if (text) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.nativeEvent.stopImmediatePropagation();
+          document.execCommand("insertText", false, text);
+          return;
+        }
+      }
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -510,24 +537,19 @@ export function SectionEditor({ section, tileId, onSaveStateChange, flushRef }: 
             handleChange();
           }}
         >
-          <div>
-            {/* Editor content */}
-            <div>
-              <PlateContent
-                onDrop={handleDrop}
-                onPaste={handlePaste}
-                onKeyDown={handleKeyDown}
-                className="min-h-[300px] outline-none text-[17px] leading-[1.65] [&_a]:text-primary [&_a]:underline [&_img]:max-w-full [&_img]:rounded-md [&_img]:border [&_img]:border-border/30 [&_img]:my-4"
-                placeholder="Start typing, or press / for commands"
-              />
-            </div>
-
-            {/* Toolbar — fixed to right side of screen */}
-            <div className="fixed right-4 top-32 space-y-1 z-20">
-              <EditorToolbar onInsertImage={openImagePicker} />
-              <FloatingTableToolbar />
-            </div>
+          {/* Toolbar */}
+          <div className="mb-4 flex gap-2 items-start flex-wrap">
+            <EditorToolbar onInsertImage={openImagePicker} />
+            <FloatingTableToolbar />
           </div>
+
+          <PlateContent
+            onDrop={handleDrop}
+            onPaste={handlePaste}
+            onKeyDown={handleKeyDown}
+            className="min-h-[300px] outline-none text-[17px] leading-[1.65] [&_a]:text-primary [&_a]:underline [&_img]:max-w-full [&_img]:rounded-md [&_img]:border [&_img]:border-border/30 [&_img]:my-4"
+            placeholder="Start typing, or press / for commands"
+          />
         </Plate>
         </EditorContextProvider>
 

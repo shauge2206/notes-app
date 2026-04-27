@@ -48,6 +48,12 @@ export function ExitPrompt({ tileId, open, onComplete, onCancel }: Props) {
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSave();
+              }
+            }}
             placeholder="Hva er neste steg?"
             rows={3}
             autoFocus

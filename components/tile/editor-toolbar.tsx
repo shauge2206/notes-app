@@ -127,7 +127,7 @@ function ActionButton({ onAction, children, title, active }: { onAction: () => v
 }
 
 function Sep() {
-  return <div className="col-span-2 h-px bg-border/50 my-0.5" />;
+  return <div className="w-px h-5 bg-border/50 mx-0.5" />;
 }
 
 interface ToolbarProps {
@@ -194,7 +194,7 @@ export function EditorToolbar({ onInsertImage }: ToolbarProps) {
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-0.5 py-2 px-1 border border-border rounded-lg bg-card/80 backdrop-blur-sm shadow-sm w-[4.5rem]">
+    <div className="flex items-center gap-0.5 py-1.5 px-2 border border-border rounded-lg bg-card/80 backdrop-blur-sm shadow-sm flex-wrap">
       {/* Marks */}
       <MarkButton nodeType={BoldPlugin.key} title="Bold (⌘B)">
         <Bold className="w-3.5 h-3.5" />
@@ -221,7 +221,7 @@ export function EditorToolbar({ onInsertImage }: ToolbarProps) {
       <Sep />
 
       {/* Text color */}
-      <div className="relative col-span-2">
+      <div className="relative">
         <ActionButton
           title="Tekstfarge"
           active={showColorPicker}
@@ -285,7 +285,7 @@ export function EditorToolbar({ onInsertImage }: ToolbarProps) {
       </ActionButton>
 
       {/* Link */}
-      <div className="relative col-span-2">
+      <div className="relative">
         {showLinkInput ? (
           <div className="flex items-center gap-1">
             <input

@@ -171,21 +171,21 @@ export function FloatingTableToolbar() {
   }
 
   return (
-    <div className="flex flex-col gap-0.5 px-1 py-1.5 border border-border rounded-md bg-card shadow-md text-[10px] w-[4.5rem]">
+    <div className="flex items-center gap-1 px-2 py-1.5 border border-border rounded-md bg-card shadow-md text-xs">
       <TBtn onClick={addRow}>
         <Rows3 className="w-3 h-3 mr-1" />Rad
       </TBtn>
       <TBtn onClick={addColumn}>
         <Columns3 className="w-3 h-3 mr-1" />Kolonne
       </TBtn>
-      <div className="h-px bg-border/50 my-0.5" />
+      <div className="w-px h-4 bg-border/50" />
       <TBtn onClick={deleteRow} destructive>
         Slett rad
       </TBtn>
       <TBtn onClick={deleteColumn} destructive>
         Slett kol.
       </TBtn>
-      <div className="h-px bg-border/50 my-0.5" />
+      <div className="w-px h-4 bg-border/50" />
       <TBtn onClick={deleteTable} destructive>
         <Trash2 className="w-3 h-3 mr-1" />Tabell
       </TBtn>

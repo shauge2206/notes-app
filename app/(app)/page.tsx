@@ -46,7 +46,7 @@ export default async function DashboardPage({ searchParams }: Props) {
     }
 
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col flex-1 min-h-0">
         <DashboardTopBar activeZoneId={params.zone} />
         <div className="flex-1 overflow-auto p-6">
           {results.length > 0 ? (
@@ -108,7 +108,7 @@ export default async function DashboardPage({ searchParams }: Props) {
 
   if (typedTiles.length === 0) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col flex-1 min-h-0">
         <DashboardTopBar activeZoneId={params.zone} />
         <EmptyState zones={zones} activeZoneId={params.zone} />
       </div>
@@ -169,7 +169,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 min-h-0">
       <DashboardTopBar activeZoneId={params.zone} />
       <div className="flex-1 overflow-auto p-6">
         <TileGrid
