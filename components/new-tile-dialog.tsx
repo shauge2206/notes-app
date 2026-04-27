@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckSquare, Layers, Plus, ArrowLeft } from "lucide-react";
@@ -41,6 +41,13 @@ export function NewTileDialog({ zones, defaultZoneId, trigger, allTags = [] }: P
   const [tags, setTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  // Listen for ⌘N shortcut
+  useEffect(() => {
+    function handleOpen() { setOpen(true); }
+    window.addEventListener("open-new-tile", handleOpen);
+    return () => window.removeEventListener("open-new-tile", handleOpen);
+  }, []);
 
   function reset() {
     setStep(1);

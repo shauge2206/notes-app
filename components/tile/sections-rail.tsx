@@ -105,7 +105,7 @@ export function SectionsRail({ tileId, tileColor, sections: initialSections, act
   }
 
   return (
-    <div className="flex flex-col gap-1 py-2">
+    <nav aria-label="Seksjoner" className="flex flex-col gap-1 py-2">
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
           {sections.map((section) => (
@@ -129,7 +129,7 @@ export function SectionsRail({ tileId, tileColor, sections: initialSections, act
         <Plus className="w-3.5 h-3.5" />
         Ny seksjon
       </button>
-    </div>
+    </nav>
   );
 }
 

@@ -130,6 +130,7 @@ export function InlineImage({ attributes, children, element }: any) {
         onBlur={() => setSelected(false)}
         tabIndex={-1}
       >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={url}
           alt={altText}
@@ -137,6 +138,8 @@ export function InlineImage({ attributes, children, element }: any) {
             selected ? "border-primary ring-2 ring-primary/30" : "border-border/30"
           }`}
           draggable={false}
+          loading="lazy"
+          style={{ aspectRatio: "auto" }}
         />
 
         {/* Resize handle — desktop only */}

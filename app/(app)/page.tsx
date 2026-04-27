@@ -160,7 +160,7 @@ export default async function DashboardPage({ searchParams }: Props) {
     }
     for (const id of sectionsTileIds) {
       const text = latestSession[id]
-        ? `Next: ${latestSession[id].slice(0, 120)}`
+        ? `Neste steg: ${latestSession[id].slice(0, 120)}`
         : sectionTexts[id]
           ? sectionTexts[id].slice(0, 120)
           : "";

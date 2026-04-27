@@ -1,22 +1,33 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Plate, PlateContent } from "@udecode/plate/react";
-import { createPlateEditor } from "@udecode/plate/react";
+import { Plate, PlateContent, usePlateEditor } from "@udecode/plate/react";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type EditorValue = any;
-import { BasicMarksPlugin } from "@udecode/plate-basic-marks/react";
+import { BoldPlugin, ItalicPlugin, UnderlinePlugin, StrikethroughPlugin, CodePlugin, SuperscriptPlugin, SubscriptPlugin } from "@udecode/plate-basic-marks/react";
 import { HeadingPlugin } from "@udecode/plate-heading/react";
 import { BlockquotePlugin } from "@udecode/plate-block-quote/react";
-import { CodeBlockPlugin } from "@udecode/plate-code-block/react";
+import { CodeBlockPlugin, CodeLinePlugin } from "@udecode/plate-code-block/react";
 import { HorizontalRulePlugin } from "@udecode/plate-horizontal-rule/react";
 import { LinkPlugin } from "@udecode/plate-link/react";
-import { ListPlugin } from "@udecode/plate-list/react";
+import { ListPlugin, TodoListPlugin } from "@udecode/plate-list/react";
 import { ImagePlugin } from "@udecode/plate-media/react";
+import { TablePlugin } from "@udecode/plate-table/react";
+import { FontColorPlugin } from "@udecode/plate-font/react";
+import {
+  BoldLeaf, ItalicLeaf, UnderlineLeaf, StrikethroughLeaf, CodeLeaf,
+  SuperscriptLeaf, SubscriptLeaf,
+  HeadingElement, BlockquoteElement, LinkElement, TodoListElement,
+  BulletedListElement, NumberedListElement, ListItemElement, ListItemContentElement,
+  CodeBlockElement, CodeLineElement, HrElement, ParagraphElement,
+  TableElement, TableRowElement, TableCellElement, TableHeaderCellElement,
+} from "@/lib/plate-components";
 import { toast } from "sonner";
 import { saveSectionContent, renameSection } from "@/app/actions/sections";
 import { uploadNoteImage, deleteNoteImage } from "@/lib/storage";
 import { InlineImage } from "@/components/tile/editor-image";
+import { EditorToolbar } from "@/components/tile/editor-toolbar";
+import { FloatingTableToolbar } from "@/components/tile/floating-table-toolbar";
 import { SlashMenu, type SlashCommand } from "@/components/tile/slash-menu";
 import { EditorContextProvider } from "@/components/tile/editor-context";
 import type { Section } from "@/lib/types";
@@ -40,34 +51,71 @@ export function SectionEditor({ section, tileId, onSaveStateChange, flushRef }: 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const lastImageUrls = useRef<Set<string>>(new Set());
+  const lastContentRef = useRef<string>("");
 
-  const plugins = [
-    BasicMarksPlugin,
-    HeadingPlugin,
-    BlockquotePlugin,
-    CodeBlockPlugin,
-    HorizontalRulePlugin,
-    LinkPlugin,
-    ListPlugin,
-    ImagePlugin.configure({
-      render: {
-        node: InlineImage,
+  const editor = usePlateEditor({
+    plugins: [
+      BoldPlugin,
+      ItalicPlugin,
+      UnderlinePlugin,
+      StrikethroughPlugin,
+      CodePlugin,
+      SuperscriptPlugin,
+      SubscriptPlugin,
+      HeadingPlugin,
+      BlockquotePlugin,
+      CodeBlockPlugin,
+      CodeLinePlugin,
+      HorizontalRulePlugin,
+      LinkPlugin,
+      ListPlugin,
+      TodoListPlugin,
+      TablePlugin,
+      FontColorPlugin,
+      ImagePlugin.configure({
+        render: {
+          node: InlineImage,
+        },
+        options: {
+          disableUploadInsert: true,
+        },
+        handlers: {},
+      }),
+    ],
+    override: {
+      components: {
+        [BoldPlugin.key]: BoldLeaf,
+        [ItalicPlugin.key]: ItalicLeaf,
+        [UnderlinePlugin.key]: UnderlineLeaf,
+        [StrikethroughPlugin.key]: StrikethroughLeaf,
+        [CodePlugin.key]: CodeLeaf,
+        [SuperscriptPlugin.key]: SuperscriptLeaf,
+        [SubscriptPlugin.key]: SubscriptLeaf,
+        p: ParagraphElement,
+        a: LinkElement,
+        h1: HeadingElement,
+        h2: HeadingElement,
+        h3: HeadingElement,
+        h4: HeadingElement,
+        h5: HeadingElement,
+        h6: HeadingElement,
+        blockquote: BlockquoteElement,
+        ul: BulletedListElement,
+        ol: NumberedListElement,
+        li: ListItemElement,
+        lic: ListItemContentElement,
+        action_item: TodoListElement,
+        code_block: CodeBlockElement,
+        code_line: CodeLineElement,
+        hr: HrElement,
+        table: TableElement,
+        tr: TableRowElement,
+        td: TableCellElement,
+        th: TableHeaderCellElement,
       },
-      options: {
-        disableUploadInsert: true,
-      },
-      handlers: {
-        // Disable plugin's built-in paste — we handle it ourselves
-      },
-    }),
-  ];
-
-  const editorRef = useRef(
-    createPlateEditor({
-      plugins,
-      value: (section.content as EditorValue) ?? defaultValue,
-    })
-  );
+    },
+    value: (section.content as EditorValue) ?? defaultValue,
+  }, [section.id]);
 
   function extractImageUrls(nodes: EditorValue): Set<string> {
     const urls = new Set<string>();
@@ -81,12 +129,12 @@ export function SectionEditor({ section, tileId, onSaveStateChange, flushRef }: 
     return urls;
   }
 
-  // Reset editor when section changes
+  // Reset local state when section changes
   useEffect(() => {
     setTitle(section.title);
     const val = (section.content as EditorValue) ?? defaultValue;
-    editorRef.current.tf.setValue(val);
     lastImageUrls.current = extractImageUrls(val);
+    lastContentRef.current = JSON.stringify(val);
     setSlashOpen(false);
   }, [section.id]);
 
@@ -99,8 +147,8 @@ export function SectionEditor({ section, tileId, onSaveStateChange, flushRef }: 
     pendingRef.current = false;
 
     onSaveStateChange?.(true);
-    const content = editorRef.current.children;
-    const plainText = editorRef.current.api.string([]);
+    const content = editor.children;
+    const plainText = editor.api.string([]);
 
     // Detect removed images and clean up storage
     const currentUrls = extractImageUrls(content);
@@ -123,16 +171,20 @@ export function SectionEditor({ section, tileId, onSaveStateChange, flushRef }: 
   }, [save, flushRef]);
 
   function handleChange() {
-    pendingRef.current = true;
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(save, 800);
+    // Only schedule save if content actually changed (not just selection/cursor)
+    const currentContent = JSON.stringify(editor.children);
+    if (currentContent !== lastContentRef.current) {
+      lastContentRef.current = currentContent;
+      pendingRef.current = true;
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(save, 60000);
+    }
 
     // Detect slash command
     detectSlash();
   }
 
   function detectSlash() {
-    const editor = editorRef.current;
     const { selection } = editor;
     if (!selection) {
       setSlashOpen(false);
@@ -185,7 +237,6 @@ export function SectionEditor({ section, tileId, onSaveStateChange, flushRef }: 
   }
 
   function handleSlashSelect(command: SlashCommand) {
-    const editor = editorRef.current;
     setSlashOpen(false);
 
     // Delete the slash + query text
@@ -221,6 +272,54 @@ export function SectionEditor({ section, tileId, onSaveStateChange, flushRef }: 
       return;
     }
 
+    if (command.key === "table") {
+      editor.tf.insertNodes({
+        type: "table",
+        children: [
+          {
+            type: "tr",
+            children: [
+              { type: "th", children: [{ text: "" }] },
+              { type: "th", children: [{ text: "" }] },
+              { type: "th", children: [{ text: "" }] },
+            ],
+          },
+          {
+            type: "tr",
+            children: [
+              { type: "td", children: [{ text: "" }] },
+              { type: "td", children: [{ text: "" }] },
+              { type: "td", children: [{ text: "" }] },
+            ],
+          },
+          {
+            type: "tr",
+            children: [
+              { type: "td", children: [{ text: "" }] },
+              { type: "td", children: [{ text: "" }] },
+              { type: "td", children: [{ text: "" }] },
+            ],
+          },
+        ],
+      });
+      handleChange();
+      return;
+    }
+
+    // List toggles need special API
+    if (command.key === "ul") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (editor.tf as any).toggle.bulletedList();
+      handleChange();
+      return;
+    }
+    if (command.key === "ol") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (editor.tf as any).toggle.numberedList();
+      handleChange();
+      return;
+    }
+
     // Block transforms
     editor.tf.toggleBlock(command.key);
     editor.tf.focus();
@@ -251,7 +350,7 @@ export function SectionEditor({ section, tileId, onSaveStateChange, flushRef }: 
     setUploading(true);
     try {
       const { url } = await uploadNoteImage(file, tileId, section.id);
-      editorRef.current.tf.insertNodes({
+      editor.tf.insertNodes({
         type: "img",
         url,
         alt: "",
@@ -288,11 +387,90 @@ export function SectionEditor({ section, tileId, onSaveStateChange, flushRef }: 
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (slashOpen && (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter")) {
-      // Let the SlashMenu handle these
       return;
     }
     if (e.key === "Escape" && slashOpen) {
       setSlashOpen(false);
+      return;
+    }
+    // Escape exits checklist/blockquote/code block back to paragraph
+    if (e.key === "Escape" && !slashOpen && editor.selection) {
+      const path = editor.selection.anchor.path;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let block: any = { children: editor.children };
+      for (let i = 0; i < path.length - 1; i++) {
+        block = block?.children?.[path[i]];
+      }
+      const blockType = block?.type;
+      if (blockType === "action_item" || blockType === "blockquote" || blockType === "code_block") {
+        e.preventDefault();
+        editor.tf.setNodes({ type: "p" });
+        return;
+      }
+    }
+    // After pressing Enter on a heading, reset to paragraph
+    if (e.key === "Enter" && !e.shiftKey && editor.selection) {
+      const path = editor.selection.anchor.path;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let currentNode: any = { children: editor.children };
+      for (let i = 0; i < path.length; i++) {
+        currentNode = currentNode?.children?.[path[i]];
+      }
+      // Walk up to find the block
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let block: any = { children: editor.children };
+      for (let i = 0; i < path.length - 1; i++) {
+        block = block?.children?.[path[i]];
+      }
+      const blockType = block?.type;
+      if (blockType && /^h[1-6]$/.test(blockType)) {
+        // Let Slate handle the Enter (split the node), then convert the new block to paragraph
+        setTimeout(() => {
+          editor.tf.setNodes({ type: "p" });
+        }, 0);
+      }
+    }
+
+    // Table keyboard navigation
+    if (editor.selection) {
+      const path = editor.selection.anchor.path;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let tableInfo: { tablePath: number[]; tableNode: any } | null = null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let node: any = { children: editor.children };
+      for (let i = 0; i < path.length; i++) {
+        node = node?.children?.[path[i]];
+        if (node?.type === "table") {
+          tableInfo = { tablePath: path.slice(0, i + 1), tableNode: node };
+          break;
+        }
+      }
+
+      if (tableInfo) {
+        // Tab — move between cells
+        if (e.key === "Tab") {
+          e.preventDefault();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (editor as any).tf.move({ unit: "offset", reverse: e.shiftKey });
+        }
+
+        // Escape — move cursor after the table
+        if (e.key === "Escape") {
+          e.preventDefault();
+          const afterTablePath = [...tableInfo.tablePath.slice(0, -1), tableInfo.tablePath[tableInfo.tablePath.length - 1] + 1];
+          // Ensure there's a paragraph after the table
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const parentChildren = (editor as any).children;
+          const tableIdx = tableInfo.tablePath[0];
+          if (tableIdx >= parentChildren.length - 1 || parentChildren[tableIdx + 1]?.type === "table") {
+            editor.tf.insertNodes(
+              { type: "p", children: [{ text: "" }] },
+              { at: [tableIdx + 1] }
+            );
+          }
+          editor.tf.select([tableIdx + 1, 0]);
+        }
+      }
     }
   }
 
@@ -330,14 +508,30 @@ export function SectionEditor({ section, tileId, onSaveStateChange, flushRef }: 
       {/* Plate editor */}
       <div className="relative" ref={contentRef}>
         <EditorContextProvider tileId={tileId} sectionId={section.id}>
-        <Plate editor={editorRef.current} onChange={handleChange}>
-          <PlateContent
-            onDrop={handleDrop}
-            onPaste={handlePaste}
-            onKeyDown={handleKeyDown}
-            className="min-h-[300px] outline-none text-[17px] leading-[1.65] [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mt-6 [&_h1]:mb-2 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mt-5 [&_h2]:mb-2 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-1 [&_blockquote]:border-l-2 [&_blockquote]:border-muted-foreground/30 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-muted-foreground [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-sm [&_code]:font-mono [&_pre]:bg-muted/50 [&_pre]:rounded-lg [&_pre]:p-4 [&_pre]:font-mono [&_pre]:text-sm [&_hr]:border-border [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-0.5 [&_a]:text-primary [&_a]:underline [&_img]:max-w-full [&_img]:rounded-md [&_img]:border [&_img]:border-border/30 [&_img]:my-4"
-            placeholder="Start typing, or press / for commands"
-          />
+        <Plate
+          editor={editor}
+          onValueChange={({ value }) => {
+            handleChange();
+          }}
+        >
+          <div>
+            {/* Editor content */}
+            <div>
+              <PlateContent
+                onDrop={handleDrop}
+                onPaste={handlePaste}
+                onKeyDown={handleKeyDown}
+                className="min-h-[300px] outline-none text-[17px] leading-[1.65] [&_a]:text-primary [&_a]:underline [&_img]:max-w-full [&_img]:rounded-md [&_img]:border [&_img]:border-border/30 [&_img]:my-4"
+                placeholder="Start typing, or press / for commands"
+              />
+            </div>
+
+            {/* Toolbar — fixed to right side of screen */}
+            <div className="fixed right-4 top-32 space-y-1 z-20">
+              <EditorToolbar onInsertImage={openImagePicker} />
+              <FloatingTableToolbar />
+            </div>
+          </div>
         </Plate>
         </EditorContextProvider>
 

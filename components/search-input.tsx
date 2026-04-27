@@ -69,11 +69,13 @@ export function SearchInput({ activeZoneId }: Props) {
         onKeyDown={handleKeyDown}
         placeholder="Søk i tiles... (⌘K)"
         className="pl-8 pr-8 h-9"
+        aria-label="Søk i tiles"
       />
       {query && (
         <button
           onClick={handleClear}
           className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Tøm søk"
         >
           <X className="w-3.5 h-3.5" />
         </button>

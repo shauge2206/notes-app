@@ -30,13 +30,28 @@ export function TileContextMenu({ tile, children, allTags = [] }: Props) {
 
   async function handlePin() {
     const result = await togglePinned(tile.id);
-    if (!result.ok) toast.error(result.error);
+    if (result.ok) {
+      toast.success(tile.is_pinned ? "Løsnet" : "Festet", { duration: 1000 });
+    } else {
+      toast.error(result.error);
+    }
   }
 
   async function handleDelete() {
-    const result = await deleteTile(tile.id);
+    // Archive first, allow undo
+    const result = await updateTile(tile.id, { is_archived: true });
     if (result.ok) {
-      toast.success("Tile slettet");
+      toast.success("Tile slettet", {
+        action: {
+          label: "Angre",
+          onClick: async () => {
+            await updateTile(tile.id, { is_archived: false });
+            router.refresh();
+          },
+        },
+        duration: 5000,
+      });
+      router.refresh();
     } else {
       toast.error(result.error);
     }
@@ -44,7 +59,11 @@ export function TileContextMenu({ tile, children, allTags = [] }: Props) {
 
   async function handleColor(color: string) {
     const result = await updateTile(tile.id, { color });
-    if (!result.ok) toast.error(result.error);
+    if (result.ok) {
+      toast.success("Farge oppdatert", { duration: 1000 });
+    } else {
+      toast.error(result.error);
+    }
   }
 
   async function handleRename() {

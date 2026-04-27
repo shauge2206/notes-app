@@ -13,6 +13,7 @@ import {
   Code,
   Minus,
   ImageIcon,
+  Table,
 } from "lucide-react";
 
 export interface SlashCommand {
@@ -33,6 +34,7 @@ const COMMANDS: SlashCommand[] = [
   { key: "blockquote", label: "Quote", icon: <Quote className="w-4 h-4" />, keywords: ["quote", "blockquote"] },
   { key: "code_block", label: "Code Block", icon: <Code className="w-4 h-4" />, keywords: ["code", "snippet"] },
   { key: "hr", label: "Divider", icon: <Minus className="w-4 h-4" />, keywords: ["divider", "line", "separator"] },
+  { key: "table", label: "Table", icon: <Table className="w-4 h-4" />, keywords: ["table", "grid", "spreadsheet", "excel"] },
   { key: "image", label: "Image", icon: <ImageIcon className="w-4 h-4" />, keywords: ["image", "photo", "picture", "upload"] },
 ];
 

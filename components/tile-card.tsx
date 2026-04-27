@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { memo } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { Pin, CheckSquare, Layers, MoreVertical } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -16,22 +17,18 @@ interface TileCardProps {
   allTags?: string[];
 }
 
-export function TileCard({ tile, checklistPreview, sectionPreview, zoneName, allTags }: TileCardProps) {
-  const router = useRouter();
+export const TileCard = memo(function TileCard({ tile, checklistPreview, sectionPreview, zoneName, allTags }: TileCardProps) {
   const color = getTileColor(tile.color);
-
-  function handleClick() {
-    router.push(`/tile/${tile.id}`);
-  }
 
   return (
     <motion.div
-      whileHover={{ scale: 1.02, boxShadow: "0 8px 30px rgba(0,0,0,0.3)" }}
+      layoutId={`tile-${tile.id}`}
+      whileHover={{ scale: 1.015, boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}
       transition={{ duration: 0.15 }}
     >
+      <Link href={`/tile/${tile.id}`} aria-label={`Åpne ${tile.title}`}>
       <Card
         className="relative overflow-hidden cursor-pointer h-full flex flex-col border-border/50 hover:border-border transition-colors group/tile"
-        onClick={handleClick}
       >
         {/* Color accent strip */}
         <div className={`h-1.5 ${color.accent}`} />
@@ -79,6 +76,7 @@ export function TileCard({ tile, checklistPreview, sectionPreview, zoneName, all
           )}
         </div>
       </Card>
+      </Link>
     </motion.div>
   );
-}
+});

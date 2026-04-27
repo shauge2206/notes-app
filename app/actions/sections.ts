@@ -155,7 +155,7 @@ export async function saveSectionContent(
 
     if (error) return { ok: false, error: error.message };
 
-    revalidatePath("/");
+    // No revalidatePath — autosave shouldn't trigger page refetch
     return { ok: true, data: undefined };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Unknown error" };

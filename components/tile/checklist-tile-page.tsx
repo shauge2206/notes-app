@@ -87,6 +87,7 @@ export function ChecklistTilePage({ tile, allTags = [] }: Props) {
           size="icon"
           className="shrink-0"
           onClick={() => router.push("/")}
+          aria-label="Tilbake til dashboard"
         >
           <ArrowLeft className="w-4 h-4" />
         </Button>
@@ -96,6 +97,7 @@ export function ChecklistTilePage({ tile, allTags = [] }: Props) {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onBlur={handleTitleBlur}
+          aria-label="Tile-tittel"
           onKeyDown={(e) => {
             if (e.key === "Enter") titleRef.current?.blur();
           }}
@@ -103,7 +105,7 @@ export function ChecklistTilePage({ tile, allTags = [] }: Props) {
         />
 
         <div className="flex items-center gap-1 ml-auto shrink-0">
-          <Button variant="ghost" size="icon" onClick={handlePin}>
+          <Button variant="ghost" size="icon" onClick={handlePin} aria-label={isPinned ? "Løsne tile" : "Fest tile"}>
             {isPinned ? (
               <Pin className="w-4 h-4 text-amber-400 fill-amber-400" />
             ) : (
@@ -112,7 +114,7 @@ export function ChecklistTilePage({ tile, allTags = [] }: Props) {
           </Button>
 
           <DropdownMenu>
-            <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-md w-9 h-9 hover:bg-accent transition-colors">
+            <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-md w-9 h-9 hover:bg-accent transition-colors" aria-label="Flere valg">
               <MoreHorizontal className="w-4 h-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">

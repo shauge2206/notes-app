@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
   Pin,
@@ -29,12 +29,12 @@ import {
 import { updateTile, deleteTile, togglePinned } from "@/app/actions/tiles";
 import { deleteWorkSession } from "@/app/actions/work-sessions";
 import { TILE_COLORS, getTileColor } from "@/lib/tile-colors";
-import dynamic from "next/dynamic";
-const SectionsRail = dynamic(() => import("@/components/tile/sections-rail").then((m) => m.SectionsRail), { ssr: false });
-const SectionEditor = dynamic(() => import("@/components/tile/section-editor").then((m) => m.SectionEditor), { ssr: false });
+import { SectionsRail } from "@/components/tile/sections-rail";
+import { SectionEditor } from "@/components/tile/section-editor";
 import { WorkSessionPanel } from "@/components/tile/work-session-panel";
 import { ExitPrompt } from "@/components/tile/exit-prompt";
 import { TagEditor } from "@/components/tag-editor";
+import { SavedIndicator } from "@/components/saved-indicator";
 import type { TileWithChildren, Section, WorkSession } from "@/lib/types";
 
 function relativeTime(dateStr: string): string {
@@ -87,6 +87,45 @@ export function SectionsTilePage({ tile, activeSectionId, allTags = [] }: Props)
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, []);
+
+  // Keyboard shortcuts: ⌘1-9, ⌘B, ⌘S
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
+
+      // ⌘1-9 — jump to section by index
+      const num = parseInt(e.key);
+      if (num >= 1 && num <= 9) {
+        e.preventDefault();
+        const section = tile.sections[num - 1];
+        if (section) {
+          const params = new URLSearchParams(window.location.search);
+          params.set("s", section.id);
+          window.history.replaceState(null, "", `?${params.toString()}`);
+          window.location.reload();
+        }
+      }
+
+      // ⌘J — toggle work session panel
+      if (e.key === "j") {
+        e.preventDefault();
+        setShowPanel((v) => !v);
+      }
+
+      // ⌘S — flush save
+      if (e.key === "s") {
+        e.preventDefault();
+        if (flushRef.current) {
+          flushRef.current().then(() => {
+            toast.success("Lagret", { duration: 1000 });
+          });
+        }
+      }
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [tile.sections]);
 
   const handleNavigateAway = useCallback(
     async (dest: string) => {
@@ -162,7 +201,7 @@ export function SectionsTilePage({ tile, activeSectionId, allTags = [] }: Props)
     return (
       <div className="flex flex-col h-full">
         <div className="flex items-center gap-3 px-4 h-14 border-b border-border shrink-0">
-          <Button variant="ghost" size="icon" onClick={() => router.push("/")}>
+          <Button variant="ghost" size="icon" onClick={() => router.push("/")} aria-label="Tilbake til dashboard">
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <span className="text-lg font-semibold">{tile.title}</span>
@@ -208,20 +247,19 @@ export function SectionsTilePage({ tile, activeSectionId, allTags = [] }: Props)
           />
 
           <div className="flex items-center gap-1 ml-auto shrink-0">
-            <span className="text-[10px] text-muted-foreground/50 mr-2">
-              {saving ? "Lagrer..." : "Lagret"}
-            </span>
+            <SavedIndicator saving={saving} />
 
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setShowPanel((v) => !v)}
               title="Arbeidslogg"
+              aria-label="Vis/skjul arbeidslogg"
             >
               <BookOpen className="w-4 h-4" />
             </Button>
 
-            <Button variant="ghost" size="icon" onClick={handlePin}>
+            <Button variant="ghost" size="icon" onClick={handlePin} aria-label={isPinned ? "Løsne tile" : "Fest tile"}>
               {isPinned ? (
                 <Pin className="w-4 h-4 text-amber-400 fill-amber-400" />
               ) : (
@@ -230,7 +268,7 @@ export function SectionsTilePage({ tile, activeSectionId, allTags = [] }: Props)
             </Button>
 
             <DropdownMenu>
-              <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-md w-9 h-9 hover:bg-accent transition-colors">
+              <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-md w-9 h-9 hover:bg-accent transition-colors" aria-label="Flere valg">
                 <MoreHorizontal className="w-4 h-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -273,12 +311,15 @@ export function SectionsTilePage({ tile, activeSectionId, allTags = [] }: Props)
 
         {/* Next session banner */}
         {latestSession && (
-          <div
+          <motion.div
+            initial={{ opacity: 0.7 }}
+            animate={{ opacity: [0.7, 1, 0.7, 1] }}
+            transition={{ duration: 1.5, times: [0, 0.3, 0.6, 1] }}
             className="flex items-center gap-3 px-6 py-2 border-b border-border text-sm"
             style={{ borderLeftWidth: 3, borderLeftColor: `var(--color-${color}-500, hsl(var(--primary)))` }}
           >
             <span className="text-[10px] uppercase font-semibold text-muted-foreground shrink-0">
-              Next:
+              Neste steg:
             </span>
             <p className="flex-1 text-foreground line-clamp-2 text-xs">
               {latestSession.note}
@@ -290,10 +331,11 @@ export function SectionsTilePage({ tile, activeSectionId, allTags = [] }: Props)
               onClick={handleDismissSession}
               className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
               title="Fjern"
+              aria-label="Fjern neste-steg notat"
             >
               <X className="w-3.5 h-3.5" />
             </button>
-          </div>
+          </motion.div>
         )}
 
         {/* Body */}
@@ -311,15 +353,23 @@ export function SectionsTilePage({ tile, activeSectionId, allTags = [] }: Props)
 
           {/* Center editor */}
           <div className="flex-1 overflow-y-auto">
-            <div className="max-w-[720px] mx-auto px-6 py-8">
+            <AnimatePresence mode="wait">
+            <motion.div
+              key={activeSection.id}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="px-6 py-6 mr-20"
+            >
               <SectionEditor
-                key={activeSection.id}
                 section={activeSection}
                 tileId={tile.id}
                 onSaveStateChange={setSaving}
                 flushRef={flushRef}
               />
-            </div>
+            </motion.div>
+            </AnimatePresence>
           </div>
 
           {/* Right panel */}
