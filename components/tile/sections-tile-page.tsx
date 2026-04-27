@@ -58,6 +58,7 @@ interface Props {
 export function SectionsTilePage({ tile, activeSectionId, allTags = [] }: Props) {
   const [title, setTitle] = useState(tile.title);
   const [isPinned, setIsPinned] = useState(tile.is_pinned);
+  const toolbarRef = useRef<HTMLDivElement>(null);
   const [color, setColor] = useState(tile.color);
   const [tags, setTags] = useState(tile.tags ?? []);
   const [saving, setSaving] = useState(false);
@@ -345,6 +346,12 @@ export function SectionsTilePage({ tile, activeSectionId, allTags = [] }: Props)
           </motion.div>
         )}
 
+        {/* Toolbar slot — toolbar gets portaled here from the editor */}
+        <div
+          ref={toolbarRef}
+          className="px-4 py-1.5 border-b border-border/50 bg-card/50 shrink-0 empty:hidden flex justify-center"
+        />
+
         {/* Body */}
         <div className="flex flex-1 min-h-0">
           {/* Left rail */}
@@ -367,13 +374,14 @@ export function SectionsTilePage({ tile, activeSectionId, allTags = [] }: Props)
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="px-6 py-6 pr-6"
+              className="max-w-4xl mx-auto px-8 py-6"
             >
               <SectionEditor
                 section={activeSection}
                 tileId={tile.id}
                 onSaveStateChange={setSaving}
                 flushRef={flushRef}
+                toolbarPortal={toolbarRef}
               />
             </motion.div>
             </AnimatePresence>

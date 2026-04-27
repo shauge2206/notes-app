@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { saveSectionContent, renameSection } from "@/app/actions/sections";
 import { uploadNoteImage, deleteNoteImage } from "@/lib/storage";
 import { InlineImage } from "@/components/tile/editor-image";
+import { createPortal } from "react-dom";
 import { EditorToolbar } from "@/components/tile/editor-toolbar";
 import { FloatingTableToolbar } from "@/components/tile/floating-table-toolbar";
 import { SlashMenu, type SlashCommand } from "@/components/tile/slash-menu";
@@ -38,13 +39,14 @@ interface Props {
   tileId: string;
   onSaveStateChange?: (saving: boolean) => void;
   flushRef?: React.MutableRefObject<(() => Promise<void>) | null>;
+  toolbarPortal?: React.RefObject<HTMLDivElement | null>;
 }
 
-const defaultValue: EditorValue = [{ type: "p", children: [{ text: "" }] }];
+const defaultValue: EditorValue = [{ type: "h1", children: [{ text: "" }] }];
 
-export function SectionEditor({ section, tileId, onSaveStateChange, flushRef }: Props) {
-  const [title, setTitle] = useState(section.title);
+export function SectionEditor({ section, tileId, onSaveStateChange, flushRef, toolbarPortal }: Props) {
   const [uploading, setUploading] = useState(false);
+  const lastTitleRef = useRef(section.title);
   const [slashOpen, setSlashOpen] = useState(false);
   const [slashQuery, setSlashQuery] = useState("");
   const [slashPos, setSlashPos] = useState<{ top: number; left: number } | null>(null);
@@ -131,9 +133,9 @@ export function SectionEditor({ section, tileId, onSaveStateChange, flushRef }: 
 
   // Reset local state when section changes
   useEffect(() => {
-    setTitle(section.title);
     const val = (section.content as EditorValue) ?? defaultValue;
     lastImageUrls.current = extractImageUrls(val);
+    lastTitleRef.current = section.title;
     setSlashOpen(false);
   }, [section.id]);
 
@@ -172,10 +174,20 @@ export function SectionEditor({ section, tileId, onSaveStateChange, flushRef }: 
   }, [save, flushRef]);
 
   function handleChange() {
-    // onValueChange only fires on actual content changes, not selection
     pendingRef.current = true;
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(save, 60000);
+
+    // Sync section title with first line of content
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const firstNode = editor.children[0] as any;
+    if (firstNode) {
+      const firstText = firstNode.children?.map((c: { text?: string }) => c.text ?? "").join("").trim() ?? "";
+      if (firstText && firstText !== lastTitleRef.current) {
+        lastTitleRef.current = firstText;
+        renameSection(section.id, firstText);
+      }
+    }
 
     // Detect slash command
     detectSlash();
@@ -416,18 +428,37 @@ export function SectionEditor({ section, tileId, onSaveStateChange, flushRef }: 
       setSlashOpen(false);
       return;
     }
-    // Escape exits checklist/blockquote/code block back to paragraph
+    // Escape exits block elements
     if (e.key === "Escape" && !slashOpen && editor.selection) {
       const path = editor.selection.anchor.path;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let block: any = { children: editor.children };
-      for (let i = 0; i < path.length - 1; i++) {
+      let blockPath: number[] = [];
+      for (let i = 0; i < path.length; i++) {
         block = block?.children?.[path[i]];
+        if (block?.type === "action_item" || block?.type === "blockquote") {
+          e.preventDefault();
+          editor.tf.setNodes({ type: "p" });
+          return;
+        }
+        if (block?.type === "code_block" || block?.type === "table") {
+          blockPath = path.slice(0, i + 1);
+          break;
+        }
       }
-      const blockType = block?.type;
-      if (blockType === "action_item" || blockType === "blockquote" || blockType === "code_block") {
+      // For code blocks and tables — move cursor after, insert paragraph if needed
+      if (blockPath.length > 0) {
         e.preventDefault();
-        editor.tf.setNodes({ type: "p" });
+        const blockIdx = blockPath[blockPath.length - 1];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const parentChildren = (editor as any).children;
+        if (blockIdx >= parentChildren.length - 1) {
+          editor.tf.insertNodes(
+            { type: "p", children: [{ text: "" }] },
+            { at: [blockIdx + 1] }
+          );
+        }
+        editor.tf.select([blockIdx + 1, 0]);
         return;
       }
     }
@@ -497,26 +528,8 @@ export function SectionEditor({ section, tileId, onSaveStateChange, flushRef }: 
     }
   }
 
-  async function handleTitleBlur() {
-    if (title.trim() && title !== section.title) {
-      const result = await renameSection(section.id, title.trim());
-      if (!result.ok) toast.error(result.error);
-    }
-  }
-
   return (
     <div className="flex flex-col gap-4">
-      {/* Section title */}
-      <input
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        onBlur={handleTitleBlur}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-        }}
-        className="text-2xl font-bold bg-transparent outline-none border-none text-foreground placeholder:text-muted-foreground/40"
-        placeholder="Seksjonstittel..."
-      />
 
       {/* Upload indicator */}
       {uploading && (
@@ -537,12 +550,6 @@ export function SectionEditor({ section, tileId, onSaveStateChange, flushRef }: 
             handleChange();
           }}
         >
-          {/* Toolbar */}
-          <div className="mb-4 flex gap-2 items-start flex-wrap">
-            <EditorToolbar onInsertImage={openImagePicker} />
-            <FloatingTableToolbar />
-          </div>
-
           <PlateContent
             onDrop={handleDrop}
             onPaste={handlePaste}
@@ -550,6 +557,15 @@ export function SectionEditor({ section, tileId, onSaveStateChange, flushRef }: 
             className="min-h-[300px] outline-none text-[17px] leading-[1.65] [&_a]:text-primary [&_a]:underline [&_img]:max-w-full [&_img]:rounded-md [&_img]:border [&_img]:border-border/30 [&_img]:my-4"
             placeholder="Start typing, or press / for commands"
           />
+
+          {/* Toolbar — portaled to the toolbar slot in the parent */}
+          {toolbarPortal?.current && createPortal(
+            <div className="flex items-center gap-1 flex-wrap">
+              <EditorToolbar onInsertImage={openImagePicker} />
+              <FloatingTableToolbar />
+            </div>,
+            toolbarPortal.current
+          )}
         </Plate>
         </EditorContextProvider>
 

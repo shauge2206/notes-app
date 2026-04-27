@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -36,6 +36,11 @@ interface Props {
 export function SectionsRail({ tileId, tileColor, sections: initialSections, activeSectionId, onBeforeSwitch }: Props) {
   const [sections, setSections] = useState(initialSections);
   const router = useRouter();
+
+  // Sync local state when server data changes (e.g. after router.refresh)
+  useEffect(() => {
+    setSections(initialSections);
+  }, [initialSections]);
   const searchParams = useSearchParams();
   const color = getTileColor(tileColor);
 

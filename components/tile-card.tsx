@@ -74,14 +74,13 @@ export const TileCard = memo(function TileCard({ tile, checklistPreview, section
               ) : (
                 <Layers className="w-3.5 h-3.5 text-muted-foreground" />
               )}
-              <TileContextMenu tile={tile} allTags={allTags}>
-                <div
-                  className="w-6 h-6 opacity-0 group-hover/tile:opacity-100 transition-opacity flex items-center justify-center rounded-md hover:bg-accent cursor-pointer"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <MoreVertical className="w-3.5 h-3.5" />
-                </div>
-              </TileContextMenu>
+              <div onClick={(e) => e.preventDefault()} onMouseDown={(e) => e.stopPropagation()}>
+                <TileContextMenu tile={tile} allTags={allTags}>
+                  <div className="w-6 h-6 opacity-0 group-hover/tile:opacity-100 transition-opacity flex items-center justify-center rounded-md hover:bg-accent cursor-pointer">
+                    <MoreVertical className="w-3.5 h-3.5" />
+                  </div>
+                </TileContextMenu>
+              </div>
             </div>
           </div>
 

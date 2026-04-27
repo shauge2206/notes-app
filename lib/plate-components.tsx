@@ -145,7 +145,7 @@ export function CodeLineElement(props: PlateElementProps) {
 export function HrElement(props: PlateElementProps) {
   return (
     <PlateElement {...props}>
-      <hr className="border-white/10 my-4" />
+      <hr className="border-white/20 my-6" />
       {props.children}
     </PlateElement>
   );
