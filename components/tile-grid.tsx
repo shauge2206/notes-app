@@ -96,7 +96,10 @@ export function TileGrid({ tiles, zones, previews, groupByZone = true, allTags =
           <div key={zone?.id ?? "unzoned"}>
             <div className="flex items-center gap-2 mb-3">
               {color && (
-                <div className={`w-2.5 h-2.5 rounded-full ${color.accent}`} />
+                <div
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: color.hex }}
+                />
               )}
               <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {zone?.name ?? "Uten zone"}
